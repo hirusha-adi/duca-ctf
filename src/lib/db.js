@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
@@ -13,7 +13,27 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function modelDelegateKey(modelName) {
+  return modelName.charAt(0).toLowerCase() + modelName.slice(1);
+}
+
+function isStalePrismaClient(client) {
+  if (!client) return true;
+
+  return Object.values(Prisma.ModelName).some((modelName) => {
+    const delegate = client[modelDelegateKey(modelName)];
+    return typeof delegate?.findMany !== "function";
+  });
+}
+
+if (isStalePrismaClient(globalForPrisma.prisma)) {
+  if (globalForPrisma.prisma) {
+    void globalForPrisma.prisma.$disconnect();
+  }
+  globalForPrisma.prisma = createPrismaClient();
+}
+
+export const prisma = globalForPrisma.prisma;
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

@@ -22,6 +22,11 @@ enum ContentFormat {
   RICHTEXT
 }
 
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
 model User {
   id              String        @id @default(cuid())
   email           String        @unique
@@ -31,9 +36,11 @@ model User {
   disabled        Boolean       @default(false)
   profileComplete Boolean       @default(false)
   createdAt       DateTime      @default(now())
-  loginCodes      LoginCode[]
-  solves          Solve[]
-  activityLogs    ActivityLog[]
+  loginCodes       LoginCode[]
+  solves           Solve[]
+  activityLogs     ActivityLog[]
+  supportTickets   SupportTicket[]
+  supportMessages  SupportMessage[]
 }
 
 model LoginCode {
@@ -70,6 +77,8 @@ model Competition {
   status            CompetitionStatus @default(DRAFT)
   createdAt         DateTime          @default(now())
   challenges        Challenge[]
+  supportTickets    SupportTicket[]
+  supportMessages   SupportMessage[]
 }
 
 model Challenge {
@@ -90,6 +99,8 @@ model Challenge {
   flags             Flag[]
   solves            Solve[]
   writeup           Writeup?
+  supportTickets    SupportTicket[]
+  supportMessages   SupportMessage[]
 
   @@unique([competitionId, slug])
   @@index([competitionId])
@@ -161,5 +172,42 @@ model ActivityLog {
   @@index([userId])
   @@index([action])
   @@index([ip])
+  @@index([createdAt])
+}
+
+model SupportTicket {
+  id            String              @id @default(cuid())
+  userId        String
+  subject       String
+  status        SupportTicketStatus @default(OPEN)
+  competitionId String?
+  challengeId   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competition   Competition?        @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  challenge     Challenge?          @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  messages      SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model SupportMessage {
+  id            String        @id @default(cuid())
+  ticketId      String
+  authorId      String
+  body          String        @default("")
+  competitionId String?
+  challengeId   String?
+  attachments   Json          @default("[]")
+  createdAt     DateTime      @default(now())
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  competition   Competition?  @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  challenge     Challenge?    @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
   @@index([createdAt])
 }

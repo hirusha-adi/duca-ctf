@@ -55,6 +55,9 @@ export async function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                <Link href="/support">Support</Link>
+              </Button>
               <div className="hidden items-center gap-2 sm:flex">
                 <span className="text-sm text-muted-foreground">
                   {user.name || user.email}
