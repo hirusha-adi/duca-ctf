@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { userHasSolvedChallenge } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileText, Lock } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
@@ -20,7 +19,11 @@ export default async function CompetitionPage({ params }) {
     include: {
       challenges: {
         where: { hidden: false },
-        include: { category: true, writeup: { select: { id: true } } },
+        include: {
+          category: true,
+          writeup: { select: { id: true } },
+          _count: { select: { flags: true } },
+        },
         orderBy: [{ category: { name: "asc" } }, { points: "desc" }],
       },
     },
@@ -31,9 +34,34 @@ export default async function CompetitionPage({ params }) {
   const ended = isCompetitionEnded(competition);
 
   const solvedMap = {};
+  const flagProgressMap = {};
+
   if (user) {
     for (const ch of competition.challenges) {
-      solvedMap[ch.id] = await userHasSolvedChallenge(user.id, ch.id);
+      flagProgressMap[ch.id] = {
+        captured: 0,
+        total: ch._count.flags,
+        solved: false,
+      };
+    }
+
+    const userSolves = await prisma.solve.findMany({
+      where: {
+        userId: user.id,
+        challengeId: { in: competition.challenges.map((c) => c.id) },
+      },
+      select: { challengeId: true, pointsAwarded: true },
+    });
+
+    for (const solve of userSolves) {
+      const progress = flagProgressMap[solve.challengeId];
+      if (!progress) continue;
+      progress.captured += 1;
+      if (solve.pointsAwarded > 0) progress.solved = true;
+    }
+
+    for (const ch of competition.challenges) {
+      solvedMap[ch.id] = flagProgressMap[ch.id].solved;
     }
   }
 
@@ -94,6 +122,8 @@ export default async function CompetitionPage({ params }) {
                   <tbody>
                     {challenges.map((ch) => {
                       const solved = solvedMap[ch.id];
+                      const progress = flagProgressMap[ch.id];
+                      const multiFlag = progress && progress.total > 1;
                       const available = isChallengeAvailable(ch, competition);
                       const upcoming = !ended && isChallengeUpcoming(ch);
 
@@ -130,7 +160,17 @@ export default async function CompetitionPage({ params }) {
                           <td className="px-4 py-3">
                             {solved ? (
                               <span className="flex items-center gap-1 text-primary">
-                                <CheckCircle2 className="h-4 w-4" /> Solved
+                                <CheckCircle2 className="h-4 w-4" />
+                                Solved
+                                {multiFlag && (
+                                  <span className="text-muted-foreground">
+                                    · {progress.captured}/{progress.total}
+                                  </span>
+                                )}
+                              </span>
+                            ) : multiFlag && progress.captured > 0 ? (
+                              <span className="text-primary">
+                                {progress.captured}/{progress.total} flags
                               </span>
                             ) : ended ? (
                               <Badge variant="secondary">Ended</Badge>

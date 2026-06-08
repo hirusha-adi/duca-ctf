@@ -16,6 +16,21 @@ export async function getUserChallengeSubmissionCount(userId, challengeId) {
   });
 }
 
+export async function getUserChallengeSubmissionStats(userId, challengeId) {
+  const [total, failed] = await Promise.all([
+    getUserChallengeSubmissionCount(userId, challengeId),
+    prisma.activityLog.count({
+      where: {
+        userId,
+        action: TELEMETRY_ACTIONS.FLAG_SUBMIT_INCORRECT,
+        metadata: { path: ["challengeId"], equals: challengeId },
+      },
+    }),
+  ]);
+
+  return { total, failed, correct: total - failed };
+}
+
 export function parseSubmitLimit(value) {
   if (value === null || value === undefined || value === "") return null;
   const n = Number(value);
