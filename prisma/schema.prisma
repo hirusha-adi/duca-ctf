@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CompetitionStatus {
+  DRAFT
+  ACTIVE
+  ENDED
+}
+
+enum ContentFormat {
+  MARKDOWN
+  RICHTEXT
+}
+
+model User {
+  id              String        @id @default(cuid())
+  email           String        @unique
+  name            String?
+  studentId       String?
+  role            Role          @default(USER)
+  disabled        Boolean       @default(false)
+  profileComplete Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  loginCodes      LoginCode[]
+  solves          Solve[]
+  activityLogs    ActivityLog[]
+}
+
+model LoginCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id         String      @id @default(cuid())
+  name       String      @unique
+  slug       String      @unique
+  isDefault  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  challenges Challenge[]
+}
+
+model Competition {
+  id         String            @id @default(cuid())
+  name       String
+  slug       String            @unique
+  startAt    DateTime
+  endAt      DateTime
+  hidden     Boolean           @default(false)
+  status     CompetitionStatus @default(DRAFT)
+  createdAt  DateTime          @default(now())
+  challenges Challenge[]
+}
+
+model Challenge {
+  id                String        @id @default(cuid())
+  competitionId     String
+  categoryId        String
+  title             String
+  slug              String
+  points            Int
+  description       String        @default("")
+  descriptionFormat ContentFormat @default(MARKDOWN)
+  startAt           DateTime
+  hidden            Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  competition       Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  category          Category      @relation(fields: [categoryId], references: [id])
+  flags             Flag[]
+  solves            Solve[]
+  writeup           Writeup?
+
+  @@unique([competitionId, slug])
+  @@index([competitionId])
+  @@index([categoryId])
+}
+
+model Flag {
+  id          String   @id @default(cuid())
+  challengeId String
+  flagHash    String
+  label       String   @default("")
+  order       Int      @default(0)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  solves      Solve[]
+
+  @@index([challengeId])
+}
+
+model Solve {
+  id          String    @id @default(cuid())
+  userId      String
+  challengeId String
+  flagId      String
+  ip          String
+  pointsAwarded Int     @default(0)
+  solvedAt    DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  flag        Flag      @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, flagId])
+  @@index([challengeId])
+  @@index([userId])
+  @@index([solvedAt])
+}
+
+model Writeup {
+  id            String        @id @default(cuid())
+  challengeId   String        @unique
+  content       String        @default("")
+  contentFormat ContentFormat @default(MARKDOWN)
+  images        Json          @default("[]")
+  updatedAt     DateTime      @updatedAt
+  challenge     Challenge     @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  ip        String
+  userAgent String   @default("")
+  action    String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([ip])
+  @@index([createdAt])
+}
