@@ -1,6 +1,12 @@
-export function getSitePagePath(slug) {
-  if (slug === "rules") return "/rules";
-  if (slug === "terms") return "/terms";
-  if (slug === "privacy") return "/privacy";
-  return `/${slug}`;
+import { isSystemPageSlug } from "@/lib/site-page-slug";
+
+export function getSitePagePath(pageOrSlug, isSystem) {
+  const slug = typeof pageOrSlug === "string" ? pageOrSlug : pageOrSlug.slug;
+  const system =
+    typeof pageOrSlug === "object"
+      ? pageOrSlug.isSystem
+      : isSystem ?? isSystemPageSlug(slug);
+
+  if (system) return `/${slug}`;
+  return `/pages/${slug}`;
 }

@@ -3,8 +3,8 @@ import { getSitePage } from "@/lib/site-pages";
 import { ContentRenderer } from "@/components/challenge/content-renderer";
 import { formatInAEST } from "@/lib/timezone";
 
-export async function SitePageContent({ slug }) {
-  const page = await getSitePage(slug);
+export async function SitePageContent({ slug, page: pageProp }) {
+  const page = pageProp ?? (slug ? await getSitePage(slug) : null);
 
   if (!page) {
     notFound();

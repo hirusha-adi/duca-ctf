@@ -27,12 +27,13 @@ async function main() {
   for (const page of SITE_PAGE_DEFINITIONS) {
     await prisma.sitePage.upsert({
       where: { slug: page.slug },
-      update: {},
+      update: { isSystem: true },
       create: {
         slug: page.slug,
         title: page.title,
         content: page.content,
         contentFormat: "RICHTEXT",
+        isSystem: true,
       },
     });
   }
