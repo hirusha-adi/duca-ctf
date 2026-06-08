@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function FlagSubmit({ challengeId, disabled = false }) {
+export function FlagSubmit({ challengeId, disabled = false, disabledMessage }) {
   const [flag, setFlag] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -44,7 +44,7 @@ export function FlagSubmit({ challengeId, disabled = false }) {
   if (disabled) {
     return (
       <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
-        This challenge is not yet available for submission.
+        {disabledMessage || "This challenge is not yet available for submission."}
       </div>
     );
   }

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { userHasSolvedChallenge } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, FileText, Lock } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
 import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
@@ -20,7 +20,7 @@ export default async function CompetitionPage({ params }) {
     include: {
       challenges: {
         where: { hidden: false },
-        include: { category: true },
+        include: { category: true, writeup: { select: { id: true } } },
         orderBy: [{ category: { name: "asc" } }, { points: "desc" }],
       },
     },
@@ -31,13 +31,13 @@ export default async function CompetitionPage({ params }) {
   const ended = isCompetitionEnded(competition);
 
   const solvedMap = {};
-  if (user && !ended) {
+  if (user) {
     for (const ch of competition.challenges) {
       solvedMap[ch.id] = await userHasSolvedChallenge(user.id, ch.id);
     }
   }
 
-  const byCategory = ended ? {} : competition.challenges.reduce((acc, ch) => {
+  const byCategory = competition.challenges.reduce((acc, ch) => {
     const cat = ch.category.name;
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(ch);
@@ -64,16 +64,7 @@ export default async function CompetitionPage({ params }) {
         )}
       </div>
 
-      {ended ? (
-        <div className="rounded-lg border border-border bg-card p-6 text-center">
-          <p className="text-muted-foreground">
-            This competition has ended. Challenges are no longer available.
-          </p>
-          <Link href="/writeups" className="mt-3 inline-block text-sm text-primary hover:underline">
-            View writeups
-          </Link>
-        </div>
-      ) : Object.keys(byCategory).length === 0 ? (
+      {Object.keys(byCategory).length === 0 ? (
         <p className="text-muted-foreground">No challenges published yet.</p>
       ) : (
         <div className="space-y-8">
@@ -87,13 +78,16 @@ export default async function CompetitionPage({ params }) {
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Challenge</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Points</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
+                      {ended && (
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Writeup</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {challenges.map((ch) => {
                       const solved = solvedMap[ch.id];
                       const available = isChallengeAvailable(ch, competition);
-                      const upcoming = isChallengeUpcoming(ch);
+                      const upcoming = !ended && isChallengeUpcoming(ch);
 
                       return (
                         <tr
@@ -127,6 +121,8 @@ export default async function CompetitionPage({ params }) {
                               <span className="flex items-center gap-1 text-primary">
                                 <CheckCircle2 className="h-4 w-4" /> Solved
                               </span>
+                            ) : ended ? (
+                              <Badge variant="secondary">Ended</Badge>
                             ) : upcoming ? (
                               <span className="flex items-center gap-1 text-muted-foreground">
                                 <Lock className="h-4 w-4" /> Locked · {formatInAEST(ch.startAt)}
@@ -137,6 +133,21 @@ export default async function CompetitionPage({ params }) {
                               <Badge variant="secondary">Closed</Badge>
                             )}
                           </td>
+                          {ended && (
+                            <td className="px-4 py-3">
+                              {ch.writeup ? (
+                                <Link
+                                  href={`/writeups/${ch.id}`}
+                                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                  Read
+                                </Link>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

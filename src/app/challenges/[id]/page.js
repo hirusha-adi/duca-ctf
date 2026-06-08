@@ -30,16 +30,12 @@ export default async function ChallengePage({ params }) {
         orderBy: { order: "asc" },
         select: { id: true, label: true, order: true },
       },
+      writeup: { select: { id: true } },
       _count: { select: { solves: { where: { pointsAwarded: { gt: 0 } } } } },
     },
   });
 
-  if (
-    !challenge ||
-    challenge.hidden ||
-    challenge.competition.hidden ||
-    isCompetitionEnded(challenge.competition)
-  ) {
+  if (!challenge || challenge.hidden || challenge.competition.hidden) {
     notFound();
   }
 
@@ -56,8 +52,14 @@ export default async function ChallengePage({ params }) {
     });
   }
 
-  const isUpcoming = isChallengeUpcoming(challenge);
+  const ended = isCompetitionEnded(challenge.competition);
+  const isUpcoming = !ended && isChallengeUpcoming(challenge);
   const available = isChallengeAvailable(challenge, challenge.competition);
+  const submitDisabledMessage = ended
+    ? "This competition has ended. Flag submissions are closed."
+    : isUpcoming
+      ? "This challenge is not yet available for submission."
+      : "This challenge is not available for submission.";
   const solved = user ? await userHasSolvedChallenge(user.id, id) : false;
   const solvedFlagIds = user ? await userSolvedFlags(user.id, id) : new Set();
 
@@ -75,6 +77,7 @@ export default async function ChallengePage({ params }) {
         <h1 className="text-2xl font-bold">{challenge.title}</h1>
         <Badge variant="outline">{challenge.points} pts</Badge>
         {solved && <Badge variant="success">Solved</Badge>}
+        {ended && <Badge variant="secondary">Ended</Badge>}
       </div>
 
       {isUpcoming && (
@@ -102,6 +105,19 @@ export default async function ChallengePage({ params }) {
         </CardContent>
       </Card>
 
+      {ended && challenge.writeup && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">Writeup</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Link href={`/writeups/${id}`} className="text-sm text-primary hover:underline">
+              Read the official writeup
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -116,7 +132,11 @@ export default async function ChallengePage({ params }) {
                 to submit flags.
               </p>
             ) : (
-              <FlagSubmit challengeId={id} disabled={!available} />
+              <FlagSubmit
+                challengeId={id}
+                disabled={!available}
+                disabledMessage={submitDisabledMessage}
+              />
             )}
           </CardContent>
         </Card>
