@@ -33,9 +33,7 @@ export function HomeHero({ user, activeCompetitions = [] }) {
           <Link href="/competitions">Competitions</Link>
         </Button>
         <Button asChild size="lg" variant="outline">
-          <Link href={user ? "/solves" : "/login"}>
-            {user ? "Live solves" : "Sign in"}
-          </Link>
+          <Link href="/solves">Live solves</Link>
         </Button>
       </div>
 

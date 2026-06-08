@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isCompetitionEnded } from "@/lib/competitions";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { ContentRenderer } from "@/components/challenge/content-renderer";
 import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
@@ -13,7 +13,7 @@ import { headers } from "next/headers";
 
 export default async function WriteupPage({ params }) {
   const { challengeId } = await params;
-  const user = await getCurrentUser();
+  const user = await requirePageAuth(`/writeups/${challengeId}`);
   const isAdmin = user?.role === "ADMIN";
 
   const challenge = await prisma.challenge.findUnique({

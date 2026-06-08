@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ import { getUserChallengeSubmissionStats } from "@/lib/submissions";
 
 export default async function ChallengePage({ params }) {
   const { id } = await params;
-  const user = await getCurrentUser();
+  const user = await requirePageAuth(`/challenges/${id}`);
 
   const challenge = await prisma.challenge.findUnique({
     where: { id },
@@ -39,18 +39,16 @@ export default async function ChallengePage({ params }) {
     notFound();
   }
 
-  if (user) {
-    const headersList = await headers();
-    const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
-    const userAgent = headersList.get("user-agent") || "";
-    await logActivity({
-      userId: user.id,
-      ip,
-      userAgent,
-      action: TELEMETRY_ACTIONS.CHALLENGE_VIEW,
-      metadata: { challengeId: id },
-    });
-  }
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const userAgent = headersList.get("user-agent") || "";
+  await logActivity({
+    userId: user.id,
+    ip,
+    userAgent,
+    action: TELEMETRY_ACTIONS.CHALLENGE_VIEW,
+    metadata: { challengeId: id },
+  });
 
   const [solves, submissionStats] = await Promise.all([
     prisma.solve.findMany({
@@ -60,7 +58,7 @@ export default async function ChallengePage({ params }) {
       },
       orderBy: { solvedAt: "asc" },
     }),
-    user ? getUserChallengeSubmissionStats(user.id, id) : null,
+    getUserChallengeSubmissionStats(user.id, id),
   ]);
 
   const ended = isCompetitionEnded(challenge.competition);
@@ -78,8 +76,8 @@ export default async function ChallengePage({ params }) {
       : isUpcoming
         ? "This challenge is not yet available for submission."
         : "This challenge is not available for submission.";
-  const solved = user ? await userHasSolvedChallenge(user.id, id) : false;
-  const solvedFlagIds = user ? await userSolvedFlags(user.id, id) : new Set();
+  const solved = await userHasSolvedChallenge(user.id, id);
+  const solvedFlagIds = await userSolvedFlags(user.id, id);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -117,7 +115,7 @@ export default async function ChallengePage({ params }) {
             <CardTitle className="text-base">Submit Flag</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {user && submissionStats && (
+            {submissionStats && (
               <div className="flex flex-wrap gap-x-4 gap-y-1 rounded-md border border-border bg-secondary/30 px-3 py-2 text-sm">
                 <span>
                   <span className="text-muted-foreground">Failed: </span>
@@ -147,20 +145,11 @@ export default async function ChallengePage({ params }) {
               </div>
             )}
 
-            {!user ? (
-              <p className="text-sm text-muted-foreground">
-                <Link href="/login" className="text-primary hover:underline">
-                  Log in
-                </Link>{" "}
-                to submit flags.
-              </p>
-            ) : (
-              <FlagSubmit
-                challengeId={id}
-                disabled={!available || submissionLimitReached}
-                disabledMessage={submitDisabledMessage}
-              />
-            )}
+            <FlagSubmit
+              challengeId={id}
+              disabled={!available || submissionLimitReached}
+              disabledMessage={submitDisabledMessage}
+            />
           </CardContent>
         </Card>
 

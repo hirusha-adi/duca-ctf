@@ -5,7 +5,12 @@ import { Countdown } from "./countdown";
 import { CheckCircle2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function ChallengeCard({ challenge, solved = false, showCountdown = true }) {
+export function ChallengeCard({
+  challenge,
+  solved = false,
+  showCountdown = true,
+  linkToChallenge = true,
+}) {
   const now = new Date();
   const isUpcoming = new Date(challenge.startAt) > now;
   const isLocked = isUpcoming;
@@ -22,14 +27,20 @@ export function ChallengeCard({ challenge, solved = false, showCountdown = true 
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
-            <Link
-              href={`/challenges/${challenge.id}`}
-              className={cn(
-                isLocked ? "text-muted-foreground" : "hover:text-primary"
-              )}
-            >
-              {challenge.title}
-            </Link>
+            {linkToChallenge ? (
+              <Link
+                href={`/challenges/${challenge.id}`}
+                className={cn(
+                  isLocked ? "text-muted-foreground" : "hover:text-primary"
+                )}
+              >
+                {challenge.title}
+              </Link>
+            ) : (
+              <span className={cn(isLocked && "text-muted-foreground")}>
+                {challenge.title}
+              </span>
+            )}
           </CardTitle>
           {solved && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
           {isLocked && !solved && <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />}

@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isCompetitionEnded } from "@/lib/competitions";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePageAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Lock, FileText } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
 
 export default async function WriteupsPage() {
-  const user = await getCurrentUser();
+  const user = await requirePageAuth("/writeups");
   const isAdmin = user?.role === "ADMIN";
 
   const competitions = await prisma.competition.findMany({

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
@@ -41,6 +42,21 @@ export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) {
     throw new Error("UNAUTHORIZED");
+  }
+  return user;
+}
+
+export function loginPath(nextPath) {
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return "/login";
+  }
+  return `/login?${new URLSearchParams({ next: nextPath })}`;
+}
+
+export async function requirePageAuth(nextPath) {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(loginPath(nextPath));
   }
   return user;
 }

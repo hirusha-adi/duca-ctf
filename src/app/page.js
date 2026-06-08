@@ -52,6 +52,7 @@ export default async function HomePage() {
                 <ChallengeCard
                   challenge={challenge}
                   solved={solvedMap[challenge.id]}
+                  linkToChallenge={!!user}
                 />
                 <p className="mt-1 px-1 text-xs text-muted-foreground">
                   Starts {formatInAEST(challenge.startAt)}

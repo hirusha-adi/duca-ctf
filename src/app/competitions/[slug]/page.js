@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, loginPath } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, FileText, Lock } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
@@ -138,18 +138,30 @@ export default async function CompetitionPage({ params }) {
                           )}
                         >
                           <td className="px-4 py-3">
-                            <Link
-                              href={`/challenges/${ch.id}`}
-                              className={cn(
-                                "font-medium",
-                                upcoming ? "text-muted-foreground" : "hover:text-primary"
-                              )}
-                            >
-                              <span className="flex items-center gap-2">
+                            {user ? (
+                              <Link
+                                href={`/challenges/${ch.id}`}
+                                className={cn(
+                                  "font-medium",
+                                  upcoming ? "text-muted-foreground" : "hover:text-primary"
+                                )}
+                              >
+                                <span className="flex items-center gap-2">
+                                  {upcoming && <Lock className="h-4 w-4 shrink-0" />}
+                                  {ch.title}
+                                </span>
+                              </Link>
+                            ) : (
+                              <span
+                                className={cn(
+                                  "flex items-center gap-2 font-medium",
+                                  upcoming && "text-muted-foreground"
+                                )}
+                              >
                                 {upcoming && <Lock className="h-4 w-4 shrink-0" />}
                                 {ch.title}
                               </span>
-                            </Link>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex flex-wrap items-center gap-2">
@@ -187,13 +199,23 @@ export default async function CompetitionPage({ params }) {
                           {ended && (
                             <td className="px-4 py-3">
                               {ch.writeup ? (
-                                <Link
-                                  href={`/writeups/${ch.id}`}
-                                  className="inline-flex items-center gap-1 text-primary hover:underline"
-                                >
-                                  <FileText className="h-4 w-4" />
-                                  Read
-                                </Link>
+                                user ? (
+                                  <Link
+                                    href={`/writeups/${ch.id}`}
+                                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    Read
+                                  </Link>
+                                ) : (
+                                  <Link
+                                    href={loginPath(`/writeups/${ch.id}`)}
+                                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                    Sign in
+                                  </Link>
+                                )
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
