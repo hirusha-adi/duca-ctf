@@ -23,7 +23,7 @@ export default async function WriteupsPage() {
         orderBy: { title: "asc" },
       },
     },
-    orderBy: { endAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
   return (

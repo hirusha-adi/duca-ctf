@@ -3,7 +3,7 @@ import { AdminWriteupsManager } from "@/components/admin/writeups-manager";
 
 export default async function AdminWriteupsPage() {
   const competitions = await prisma.competition.findMany({
-    orderBy: { name: "asc" },
+    orderBy: { createdAt: "desc" },
     include: {
       challenges: {
         orderBy: { title: "asc" },

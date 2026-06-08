@@ -16,7 +16,7 @@ export default async function AdminChallengesPage() {
         _count: { select: { solves: true } },
       },
     }),
-    prisma.competition.findMany({ orderBy: { name: "asc" } }),
+    prisma.competition.findMany({ orderBy: { createdAt: "desc" } }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 

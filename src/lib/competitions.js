@@ -35,13 +35,13 @@ export async function getActiveCompetitions() {
       endAt: { gte: now },
       status: { not: "ENDED" },
     },
-    orderBy: { startAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getVisibleCompetitions() {
   return prisma.competition.findMany({
     where: { hidden: false },
-    orderBy: { startAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 }

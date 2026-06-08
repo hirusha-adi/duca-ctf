@@ -4,7 +4,7 @@ import { formatInAEST, toDatetimeLocalInAEST } from "@/lib/timezone";
 
 export default async function AdminCompetitionsPage() {
   const competitions = await prisma.competition.findMany({
-    orderBy: { startAt: "desc" },
+    orderBy: { createdAt: "desc" },
     include: { _count: { select: { challenges: true } } },
   });
 
