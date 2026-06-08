@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInAEST } from "@/lib/timezone";
 import { ArrowRight, Trophy, Zap, BookOpen } from "lucide-react";
-
 export default async function HomePage() {
   const user = await getCurrentUser();
   const activeCompetitions = await getActiveCompetitions();
