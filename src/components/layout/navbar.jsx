@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu } from "lucide-react";
+import { ExternalLink, Shield, Menu } from "lucide-react";
 
 const navLinks = [
   { href: "/competitions", label: "Competitions" },
@@ -31,6 +31,15 @@ export async function Navbar() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="https://duca.au/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              duca.au
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
             {user?.role === "ADMIN" && (
               <Link
                 href="/admin"
