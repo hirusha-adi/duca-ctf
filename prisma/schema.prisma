@@ -145,6 +145,7 @@ model SitePage {
   content       String        @default("")
   contentFormat ContentFormat @default(RICHTEXT)
   isSystem      Boolean       @default(false)
+  hidden        Boolean       @default(false)
   updatedAt     DateTime      @updatedAt
 }
 

@@ -61,13 +61,19 @@ export async function listAllSitePages() {
   return { systemPages, customPages };
 }
 
+export async function listPublicSitePages() {
+  const { systemPages, customPages } = await listAllSitePages();
+  return [...systemPages, ...customPages.filter((page) => !page.hidden)];
+}
+
 export async function getSitePage(slug) {
   await ensureDefaultSitePages();
   return prisma.sitePage.findUnique({ where: { slug } });
 }
 
-export async function getCustomSitePage(slug) {
+export async function getCustomSitePage(slug, { isAdmin = false } = {}) {
   const page = await getSitePage(slug);
   if (!page || page.isSystem) return null;
+  if (page.hidden && !isAdmin) return null;
   return page;
 }

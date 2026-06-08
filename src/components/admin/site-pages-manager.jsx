@@ -93,7 +93,14 @@ function SidebarPageButton({ page, selected, onSelect }) {
         selected && "border-primary ring-1 ring-primary"
       )}
     >
-      <div className="font-medium">{page.title}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="font-medium">{page.title}</div>
+        {!page.isSystem && page.hidden && (
+          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Hidden
+          </span>
+        )}
+      </div>
       <div className="mt-1 truncate text-xs text-muted-foreground">
         {getSitePagePath(page)}
       </div>
@@ -109,6 +116,8 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
   const [content, setContent] = useState(() => getPageHtml(systemPages[0]));
   const [title, setTitle] = useState("");
   const [editSlug, setEditSlug] = useState("");
+  const [hidden, setHidden] = useState(false);
+  const [togglingHidden, setTogglingHidden] = useState(false);
 
   const [saveState, setSaveState] = useState(systemPages[0] ? "saved" : "idle");
   const [error, setError] = useState(null);
@@ -143,6 +152,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     if (!page.isSystem) {
       setTitle(page.title);
       setEditSlug(page.slug);
+      setHidden(Boolean(page.hidden));
     }
     setSaveState("saved");
     setError(null);
@@ -186,6 +196,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
       if (!isSystemPage && includeMetadata) {
         body.title = title.trim();
         body.slug = normalizePageSlug(editSlug);
+        body.hidden = hidden;
       }
 
       try {
@@ -230,8 +241,40 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
         setError("Save failed");
       }
     },
-    [selectedSlug, selectedPage, isSystemPage, title, editSlug, router]
+    [selectedSlug, selectedPage, isSystemPage, title, editSlug, hidden, router]
   );
+
+  async function toggleHidden(checked) {
+    if (!selectedPage || isSystemPage) return;
+
+    setHidden(checked);
+    setTogglingHidden(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/admin/pages/${selectedSlug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hidden: checked }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setHidden(!checked);
+        setError(data.error || "Update failed");
+        return;
+      }
+      setCustomPages((prev) =>
+        prev.map((p) => (p.slug === selectedSlug ? data.page : p))
+      );
+      setSaveState("saved");
+      router.refresh();
+    } catch {
+      setHidden(!checked);
+      setError("Update failed");
+    } finally {
+      setTogglingHidden(false);
+    }
+  }
 
   async function createCustomPage(e) {
     e.preventDefault();
@@ -482,6 +525,22 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
                       autoComplete="off"
                     />
                   </div>
+                </div>
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    id="edit-page-hidden"
+                    checked={hidden}
+                    disabled={togglingHidden}
+                    onChange={(e) => toggleHidden(e.target.checked)}
+                    className="h-4 w-4 rounded border border-border bg-background accent-primary"
+                  />
+                  <Label htmlFor="edit-page-hidden" className="cursor-pointer">
+                    Hidden
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    Not listed publicly; only admins can open this page.
+                  </span>
                 </div>
               </div>
             )}

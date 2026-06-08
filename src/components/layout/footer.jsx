@@ -14,6 +14,9 @@ export function Footer() {
           <Link href="/privacy" className="hover:text-foreground">
             Privacy Policy
           </Link>
+          <Link href="/pages" className="hover:text-foreground">
+            Pages
+          </Link>
         </nav>
         <p>Deakin University Cybersecurity Association</p>
       </div>

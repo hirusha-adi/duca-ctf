@@ -50,6 +50,10 @@ export async function PUT(request, { params }) {
         }
         data.slug = nextSlug;
       }
+
+      if (body.hidden !== undefined) {
+        data.hidden = Boolean(body.hidden);
+      }
     }
 
     const page = await prisma.sitePage.update({
