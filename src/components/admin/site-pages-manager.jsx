@@ -118,9 +118,6 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
   const [createError, setCreateError] = useState(null);
   const [creating, setCreating] = useState(false);
 
-  const [detailsState, setDetailsState] = useState("idle");
-  const [detailsError, setDetailsError] = useState(null);
-
   const saveTimerRef = useRef(null);
   const latestContentRef = useRef(getPageHtml(systemPages[0]));
   const skipSaveRef = useRef(false);
@@ -149,8 +146,6 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     }
     setSaveState("saved");
     setError(null);
-    setDetailsState("idle");
-    setDetailsError(null);
   }, []);
 
   function selectPage(slug) {
@@ -161,21 +156,43 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     loadPage(page);
   }
 
-  const saveContent = useCallback(
-    async (html) => {
-      if (!selectedSlug) return;
+  const savePage = useCallback(
+    async (html, { includeMetadata = false } = {}) => {
+      if (!selectedSlug || !selectedPage) return;
+
+      if (!isSystemPage && includeMetadata) {
+        const normalized = normalizePageSlug(editSlug);
+        const formatError = validatePageSlugFormat(normalized);
+        if (formatError) {
+          setSaveState("error");
+          setError(formatError);
+          return;
+        }
+        if (!title.trim()) {
+          setSaveState("error");
+          setError("Title is required");
+          return;
+        }
+      }
 
       setSaveState("saving");
       setError(null);
+
+      const body = {
+        content: html,
+        contentFormat: "RICHTEXT",
+      };
+
+      if (!isSystemPage && includeMetadata) {
+        body.title = title.trim();
+        body.slug = normalizePageSlug(editSlug);
+      }
 
       try {
         const res = await fetch(`/api/admin/pages/${selectedSlug}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: html,
-            contentFormat: "RICHTEXT",
-          }),
+          body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -184,11 +201,27 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
           return;
         }
         if (!isSystemPage && data.page) {
-          setCustomPages((prev) =>
-            prev.map((p) => (p.slug === selectedSlug ? data.page : p))
-          );
-          if (data.page.slug !== selectedSlug) {
+          const slugChanged = data.page.slug !== selectedPage.slug;
+          if (includeMetadata && slugChanged) {
+            setCustomPages((prev) => {
+              const next = prev.filter((p) => p.slug !== selectedPage.slug);
+              next.push(data.page);
+              next.sort((a, b) => a.title.localeCompare(b.title));
+              return next;
+            });
             setSelectedSlug(data.page.slug);
+            setEditSlug(data.page.slug);
+            setTitle(data.page.title);
+            router.refresh();
+          } else {
+            setCustomPages((prev) =>
+              prev.map((p) => (p.slug === selectedSlug ? data.page : p))
+            );
+            if (includeMetadata) {
+              setTitle(data.page.title);
+              setEditSlug(data.page.slug);
+              router.refresh();
+            }
           }
         }
         setSaveState("saved");
@@ -197,62 +230,8 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
         setError("Save failed");
       }
     },
-    [selectedSlug, isSystemPage]
+    [selectedSlug, selectedPage, isSystemPage, title, editSlug, router]
   );
-
-  async function saveCustomDetails() {
-    if (!selectedPage || isSystemPage) return;
-
-    const normalized = normalizePageSlug(editSlug);
-    const formatError = validatePageSlugFormat(normalized);
-    if (formatError) {
-      setDetailsState("error");
-      setDetailsError(formatError);
-      return;
-    }
-    if (!title.trim()) {
-      setDetailsState("error");
-      setDetailsError("Title is required");
-      return;
-    }
-
-    setDetailsState("saving");
-    setDetailsError(null);
-
-    try {
-      const res = await fetch(`/api/admin/pages/${selectedPage.slug}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          slug: normalized,
-          content: latestContentRef.current,
-          contentFormat: "RICHTEXT",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setDetailsState("error");
-        setDetailsError(data.error || "Save failed");
-        return;
-      }
-
-      setCustomPages((prev) => {
-        const next = prev.filter((p) => p.slug !== selectedPage.slug);
-        next.push(data.page);
-        next.sort((a, b) => a.title.localeCompare(b.title));
-        return next;
-      });
-      setSelectedSlug(data.page.slug);
-      setEditSlug(data.page.slug);
-      setTitle(data.page.title);
-      setDetailsState("saved");
-      router.refresh();
-    } catch {
-      setDetailsState("error");
-      setDetailsError("Save failed");
-    }
-  }
 
   async function createCustomPage(e) {
     e.preventDefault();
@@ -348,13 +327,13 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
     saveTimerRef.current = setTimeout(() => {
-      saveContent(latestContentRef.current);
-    }, 1200);
+      savePage(latestContentRef.current);
+    }, 5000);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [content, selectedSlug, saveContent]);
+  }, [content, selectedSlug, savePage]);
 
   const newSlugPreview = normalizePageSlug(newSlug);
   const newSlugFormatError = newSlugPreview
@@ -466,7 +445,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
               }
               saveState={saveState}
               error={error}
-              onSaveNow={() => saveContent(content)}
+              onSaveNow={() => savePage(content, { includeMetadata: !isSystemPage })}
               extraActions={
                 !isSystemPage ? (
                   <Button
@@ -489,10 +468,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
                   <Input
                     id="edit-page-title"
                     value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      setDetailsState("idle");
-                    }}
+                    onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -502,29 +478,10 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
                     <Input
                       id="edit-page-slug"
                       value={editSlug}
-                      onChange={(e) => {
-                        setEditSlug(e.target.value);
-                        setDetailsState("idle");
-                      }}
+                      onChange={(e) => setEditSlug(e.target.value)}
                       autoComplete="off"
                     />
                   </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 md:col-span-2">
-                  <Button type="button" size="sm" variant="secondary" onClick={saveCustomDetails}>
-                    Save title &amp; slug
-                  </Button>
-                  {detailsState === "saving" && (
-                    <span className="text-xs text-muted-foreground">Saving details…</span>
-                  )}
-                  {detailsState === "saved" && (
-                    <span className="text-xs text-primary">Details saved</span>
-                  )}
-                  {detailsState === "error" && (
-                    <span className="text-xs text-destructive">
-                      {detailsError || "Save failed"}
-                    </span>
-                  )}
                 </div>
               </div>
             )}
