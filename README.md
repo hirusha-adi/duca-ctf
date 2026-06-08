@@ -48,7 +48,7 @@ sudo docker exec blume3-db psql -U blume -d blume3 -c "CREATE ROLE duca WITH LOG
 sudo docker exec blume3-db psql -U blume -d blume3 -c "CREATE DATABASE duca_ctf OWNER duca;"
 ```
 
-Alternatively, set `DATABASE_URL` in `.env` and `.env.local` to match your Postgres credentials.
+Alternatively, set `DATABASE_URL` in `.env` and `.env.local` to match your Postgres credentials. The connection URL is read from `prisma.config.mjs` (not `schema.prisma`).
 
 4. Run migrations and seed default categories:
 

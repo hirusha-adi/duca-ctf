@@ -1,6 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const { createPrismaClient } = require("./create-client");
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const DEFAULT_CATEGORIES = [
   { name: "Web", slug: "web" },

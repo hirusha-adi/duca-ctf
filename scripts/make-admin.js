@@ -1,6 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const { createPrismaClient } = require("../prisma/create-client");
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 async function main() {
   const email = process.argv[2];
