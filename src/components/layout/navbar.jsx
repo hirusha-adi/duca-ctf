@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Shield, Menu } from "lucide-react";
+import { NavbarPoints } from "@/components/layout/navbar-points";
 
 const navLinks = [
   { href: "/competitions", label: "Competitions" },
@@ -54,9 +55,12 @@ export async function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <span className="hidden text-sm text-muted-foreground sm:inline">
-                {user.name || user.email}
-              </span>
+              <div className="hidden items-center gap-2 sm:flex">
+                <span className="text-sm text-muted-foreground">
+                  {user.name || user.email}
+                </span>
+                <NavbarPoints />
+              </div>
               <form action="/api/auth/logout" method="POST">
                 <Button type="submit" variant="outline" size="sm">
                   Logout

@@ -1,4 +1,38 @@
 import { prisma } from "./db";
+import { getActiveCompetitions } from "./competitions";
+
+export async function getUserTotalPoints(userId) {
+  const result = await prisma.solve.aggregate({
+    where: { userId, pointsAwarded: { gt: 0 } },
+    _sum: { pointsAwarded: true },
+  });
+  return result._sum.pointsAwarded ?? 0;
+}
+
+export async function getUserPointsSummary(userId) {
+  const [activeCompetitions, overallTotal] = await Promise.all([
+    getActiveCompetitions(),
+    getUserTotalPoints(userId),
+  ]);
+
+  const activeBreakdown = await Promise.all(
+    activeCompetitions.map(async (comp) => ({
+      id: comp.id,
+      name: comp.name,
+      slug: comp.slug,
+      points: await getUserScoreInCompetition(userId, comp.id),
+    }))
+  );
+
+  const activeTotal = activeBreakdown.reduce((sum, entry) => sum + entry.points, 0);
+
+  return {
+    activeTotal,
+    overallTotal,
+    activeCompetitions: activeBreakdown,
+    hasActiveCompetitions: activeCompetitions.length > 0,
+  };
+}
 
 export async function getUserScoreInCompetition(userId, competitionId) {
   const solves = await prisma.solve.findMany({

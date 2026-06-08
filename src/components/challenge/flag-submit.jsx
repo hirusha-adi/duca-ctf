@@ -31,6 +31,7 @@ export function FlagSubmit({ challengeId, disabled = false, disabledMessage }) {
         setSuccess(true);
         setMessage(data.message);
         setFlag("");
+        window.dispatchEvent(new CustomEvent("duca-points-update"));
       } else {
         setMessage(data.error || "Incorrect flag");
       }
