@@ -18,7 +18,14 @@ export function Footer() {
             Pages
           </Link>
         </nav>
-        <p>Deakin University Cybersecurity Association</p>
+        <Link
+          href="https://duca.au/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-foreground"
+        >
+          Deakin University Cybersecurity Association
+        </Link>
       </div>
     </footer>
   );
