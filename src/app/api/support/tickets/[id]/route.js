@@ -8,6 +8,7 @@ import {
   ticketInclude,
   ticketSummaryInclude,
 } from "@/lib/support";
+import { notifySupportTicketUpdate } from "@/lib/support-notify";
 
 export async function GET(_request, { params }) {
   try {
@@ -64,6 +65,8 @@ export async function PATCH(request, { params }) {
       data: { status },
       include: ticketSummaryInclude,
     });
+
+    await notifySupportTicketUpdate(id);
 
     return NextResponse.json({ ticket: serializeTicketSummary(ticket) });
   } catch (err) {

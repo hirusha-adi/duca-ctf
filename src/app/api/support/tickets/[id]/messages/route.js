@@ -7,6 +7,7 @@ import {
   serializeMessage,
 } from "@/lib/support";
 import { getSupportMessageCooldownRemaining } from "@/lib/support-rate-limit";
+import { notifySupportMessage } from "@/lib/support-notify";
 
 export async function POST(request, { params }) {
   try {
@@ -98,6 +99,8 @@ export async function POST(request, { params }) {
 
       return msg;
     });
+
+    await notifySupportMessage(id, created.id);
 
     return NextResponse.json({ message: serializeMessage(created) }, { status: 201 });
   } catch (err) {

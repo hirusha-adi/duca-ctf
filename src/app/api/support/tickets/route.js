@@ -7,6 +7,7 @@ import {
   ticketSummaryInclude,
 } from "@/lib/support";
 import { getSupportMessageCooldownRemaining } from "@/lib/support-rate-limit";
+import { notifySupportTicketUpdate } from "@/lib/support-notify";
 
 export async function GET() {
   try {
@@ -102,6 +103,8 @@ export async function POST(request) {
       },
       include: ticketSummaryInclude,
     });
+
+    await notifySupportTicketUpdate(ticket.id);
 
     return NextResponse.json({ ticket: serializeTicketSummary(ticket) }, { status: 201 });
   } catch (err) {

@@ -9,7 +9,7 @@ import { SupportTicketSidebar } from "@/components/support/support-ticket-sideba
 import { SupportChatView } from "@/components/support/support-chat-view";
 import { NewTicketPanel } from "@/components/support/new-ticket-panel";
 import { cn } from "@/lib/utils";
-import { SUPPORT_TICKET_LIST_POLL_MS } from "@/lib/support-constants";
+import { useSupportInboxStream } from "@/hooks/use-support-stream";
 
 export function SupportInbox({
   currentUser,
@@ -52,11 +52,25 @@ export function SupportInbox({
     }
   }, [isAdmin, statusFilter, searchQuery, ticketsApiBase]);
 
+  const handleTicketUpdate = useCallback((updated) => {
+    if (!updated?.id) return;
+    setTickets((prev) => {
+      const exists = prev.some((t) => t.id === updated.id);
+      if (!exists) return [updated, ...prev];
+      return prev
+        .map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    });
+  }, []);
+
   useEffect(() => {
     loadTickets();
-    const interval = setInterval(loadTickets, SUPPORT_TICKET_LIST_POLL_MS);
-    return () => clearInterval(interval);
   }, [loadTickets]);
+
+  useSupportInboxStream({
+    onTicket: handleTicketUpdate,
+    onReconnect: loadTickets,
+  });
 
   useEffect(() => {
     setSelectedId(initialTicketId);
@@ -69,17 +83,6 @@ export function SupportInbox({
     } else {
       router.push(`${basePath}/${id}`);
     }
-  }
-
-  function handleTicketUpdate(updated) {
-    if (!updated?.id) return;
-    setTickets((prev) => {
-      const exists = prev.some((t) => t.id === updated.id);
-      if (!exists) return [updated, ...prev];
-      return prev
-        .map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
-        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    });
   }
 
   const filteredTickets = isAdmin

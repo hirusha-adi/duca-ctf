@@ -9,7 +9,7 @@ import { SupportMessage } from "@/components/support/support-message";
 import { MessageComposer } from "@/components/support/message-composer";
 import { timeAgoInAEST } from "@/lib/timezone";
 import { adminUserPath } from "@/lib/admin-user-paths";
-import { SUPPORT_CHAT_POLL_MS } from "@/lib/support-constants";
+import { useSupportTicketStream } from "@/hooks/use-support-stream";
 
 export function SupportChatView({
   ticketId,
@@ -20,6 +20,7 @@ export function SupportChatView({
 }) {
   const messagesRef = useRef(null);
   const lastMessageCountRef = useRef(0);
+  const appendedMessageIdsRef = useRef(new Set());
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,6 +33,9 @@ export function SupportChatView({
       const res = await fetch(`${ticketsApiBase}/${ticketId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load chat");
+      appendedMessageIdsRef.current = new Set(
+        data.ticket.messages?.map((message) => message.id) ?? []
+      );
       setTicket(data.ticket);
       setError(null);
       onTicketUpdate?.(data.ticket);
@@ -47,11 +51,53 @@ export function SupportChatView({
     loadTicket();
   }, [loadTicket]);
 
-  useEffect(() => {
-    if (!ticketId) return;
-    const interval = setInterval(loadTicket, SUPPORT_CHAT_POLL_MS);
-    return () => clearInterval(interval);
-  }, [ticketId, loadTicket]);
+  const appendMessage = useCallback(
+    (message) => {
+      if (!message?.id || appendedMessageIdsRef.current.has(message.id)) return;
+
+      appendedMessageIdsRef.current.add(message.id);
+      setTicket((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), message],
+          updatedAt: message.createdAt,
+        };
+      });
+      onTicketUpdate?.({
+        id: ticketId,
+        lastMessage: {
+          body: message.body,
+          createdAt: message.createdAt,
+          authorDisplayName: message.author.displayName,
+          authorRole: message.author.role,
+        },
+        updatedAt: message.createdAt,
+      });
+    },
+    [onTicketUpdate, ticketId]
+  );
+
+  useSupportTicketStream(ticketId, {
+    onMessage: (message) => {
+      // Sender already gets the message from the POST response.
+      if (message.author.id === currentUser.id) return;
+      appendMessage(message);
+    },
+    onTicket: (summary) => {
+      setTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: summary.status,
+              updatedAt: summary.updatedAt,
+            }
+          : prev
+      );
+      onTicketUpdate?.(summary);
+    },
+    onReconnect: loadTicket,
+  });
 
   useEffect(() => {
     const messageCount = ticket?.messages?.length ?? 0;
@@ -69,6 +115,7 @@ export function SupportChatView({
 
   useEffect(() => {
     lastMessageCountRef.current = 0;
+    appendedMessageIdsRef.current.clear();
   }, [ticketId]);
 
   async function sendMessage(payload) {
@@ -85,25 +132,7 @@ export function SupportChatView({
       throw new Error(data.error || "Failed to send message");
     }
 
-    setTicket((prev) =>
-      prev
-        ? {
-            ...prev,
-            messages: [...(prev.messages || []), data.message],
-            updatedAt: data.message.createdAt,
-          }
-        : prev
-    );
-    onTicketUpdate?.({
-      ...ticket,
-      lastMessage: {
-        body: data.message.body,
-        createdAt: data.message.createdAt,
-        authorDisplayName: data.message.author.displayName,
-        authorRole: data.message.author.role,
-      },
-      updatedAt: data.message.createdAt,
-    });
+    appendMessage(data.message);
   }
 
   async function toggleStatus() {
