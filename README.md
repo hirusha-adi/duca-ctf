@@ -1,5 +1,7 @@
 # DUCA CTF
 
+![](./docs/images/home_image.png)
+
 Capture-the-flag platform for the [Deakin University Cybersecurity Association](https://duca.au/) (DUCA).
 
 ## Features
