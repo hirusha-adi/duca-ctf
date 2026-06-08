@@ -9,22 +9,26 @@ import {
   ticketSummaryInclude,
 } from "./support";
 
-export async function notifySupportMessage(ticketId, messageId) {
-  const message = await prisma.supportMessage.findUnique({
-    where: { id: messageId },
-    include: {
-      author: { select: { id: true, name: true, email: true, role: true } },
-      competition: { select: { id: true, name: true, slug: true } },
-      challenge: {
-        select: {
-          id: true,
-          title: true,
-          competition: { select: { slug: true } },
-        },
-      },
-      ticket: { select: { userId: true } },
+const messageNotifyInclude = {
+  author: { select: { id: true, name: true, email: true, role: true } },
+  competition: { select: { id: true, name: true, slug: true } },
+  challenge: {
+    select: {
+      id: true,
+      title: true,
+      competition: { select: { slug: true } },
     },
-  });
+  },
+  ticket: { select: { userId: true } },
+};
+
+export async function notifySupportMessage(ticketId, messageId, preloadedMessage = null) {
+  const message =
+    preloadedMessage ??
+    (await prisma.supportMessage.findUnique({
+      where: { id: messageId },
+      include: messageNotifyInclude,
+    }));
 
   if (!message) return;
 

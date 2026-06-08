@@ -79,17 +79,6 @@ export async function POST(request, { params }) {
           challengeId: challengeId || undefined,
           attachments,
         },
-        include: {
-          author: { select: { id: true, name: true, email: true, role: true } },
-          competition: { select: { id: true, name: true, slug: true } },
-          challenge: {
-            select: {
-              id: true,
-              title: true,
-              competition: { select: { slug: true } },
-            },
-          },
-        },
       });
 
       await tx.supportTicket.update({
@@ -100,9 +89,28 @@ export async function POST(request, { params }) {
       return msg;
     });
 
-    await notifySupportMessage(id, created.id);
+    const fullMessage = await prisma.supportMessage.findUnique({
+      where: { id: created.id },
+      include: {
+        author: { select: { id: true, name: true, email: true, role: true } },
+        competition: { select: { id: true, name: true, slug: true } },
+        challenge: {
+          select: {
+            id: true,
+            title: true,
+            competition: { select: { slug: true } },
+          },
+        },
+      },
+    });
 
-    return NextResponse.json({ message: serializeMessage(created) }, { status: 201 });
+    if (!fullMessage) {
+      return NextResponse.json({ error: "Failed to load message" }, { status: 500 });
+    }
+
+    await notifySupportMessage(id, created.id, fullMessage);
+
+    return NextResponse.json({ message: serializeMessage(fullMessage) }, { status: 201 });
   } catch (err) {
     if (err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
