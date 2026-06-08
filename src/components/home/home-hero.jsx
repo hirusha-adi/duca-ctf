@@ -39,16 +39,25 @@ export function HomeHero({ user, activeCompetitions = [] }) {
         </Button>
       </div>
 
-      <p className="mt-6 text-sm text-muted-foreground">
+      <nav className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
+        <Link href="/solves" className="hover:text-foreground">
+          Solves
+        </Link>
+        <Link href="/leaderboard" className="hover:text-foreground">
+          Leaderboard
+        </Link>
+        <Link href="/writeups" className="hover:text-foreground">
+          Writeups
+        </Link>
         <a
           href="https://duca.au"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline-offset-4 hover:text-foreground hover:underline"
+          className="hover:text-foreground"
         >
           duca.au
         </a>
-      </p>
+      </nav>
 
       {activeCompetitions.length > 0 && (
         <div className="mt-12 w-full max-w-lg border-t border-border pt-8">
