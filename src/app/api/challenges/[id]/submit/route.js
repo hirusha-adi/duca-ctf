@@ -7,6 +7,7 @@ import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { getUserChallengeSubmissionCount } from "@/lib/submissions";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { notifySolveCreated } from "@/lib/solves-notify";
 
 export async function POST(request, { params }) {
   try {
@@ -97,7 +98,7 @@ export async function POST(request, { params }) {
 
     const pointsAwarded = existingChallengeSolve ? 0 : challenge.points;
 
-    await prisma.solve.create({
+    const solve = await prisma.solve.create({
       data: {
         userId: user.id,
         challengeId: id,
@@ -106,6 +107,8 @@ export async function POST(request, { params }) {
         pointsAwarded,
       },
     });
+
+    await notifySolveCreated(solve.id);
 
     await logActivity({
       userId: user.id,

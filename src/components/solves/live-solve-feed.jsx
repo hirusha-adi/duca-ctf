@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { timeAgoInAEST } from "@/lib/timezone";
 import { adminUserPath } from "@/lib/admin-user-paths";
+import { useSolvesStream } from "@/hooks/use-solves-stream";
 
 function SolveUserName({ solve, isAdmin }) {
   const label = solve.user.name || solve.user.email;
@@ -53,18 +54,30 @@ function SolveCompetitionName({ solve, isAdmin }) {
 export function LiveSolveFeed({ initialSolves, competitionId, isAdmin = false }) {
   const [solves, setSolves] = useState(initialSolves);
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const params = competitionId ? `?competitionId=${competitionId}` : "";
-      const res = await fetch(`/api/solves${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSolves(data.solves);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
+  const loadSolves = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (competitionId) params.set("competitionId", competitionId);
+    const query = params.toString();
+    const res = await fetch(`/api/solves${query ? `?${query}` : ""}`);
+    if (res.ok) {
+      const data = await res.json();
+      setSolves(data.solves);
+    }
   }, [competitionId]);
+
+  const handleSolve = useCallback((solve) => {
+    setSolves((prev) => {
+      if (prev.some((entry) => entry.id === solve.id)) return prev;
+      return [solve, ...prev].slice(0, 50);
+    });
+  }, []);
+
+  useSolvesStream({
+    competitionId,
+    onSolve: handleSolve,
+    onRefresh: loadSolves,
+    onReconnect: loadSolves,
+  });
 
   if (solves.length === 0) {
     return (

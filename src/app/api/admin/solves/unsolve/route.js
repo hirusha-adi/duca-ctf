@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { notifySolvesRefresh } from "@/lib/solves-notify";
 
 export async function POST(request) {
   try {
@@ -90,6 +91,8 @@ export async function POST(request) {
         ...revertMetadata,
       },
     });
+
+    await notifySolvesRefresh();
 
     return NextResponse.json({
       success: true,
