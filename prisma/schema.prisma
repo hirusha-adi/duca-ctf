@@ -138,6 +138,15 @@ model Writeup {
   challenge     Challenge     @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 }
 
+model SitePage {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  content       String        @default("")
+  contentFormat ContentFormat @default(RICHTEXT)
+  updatedAt     DateTime      @updatedAt
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   userId    String?

@@ -13,6 +13,8 @@ const DEFAULT_CATEGORIES = [
 ];
 
 async function main() {
+  const { SITE_PAGE_DEFINITIONS } = await import("../src/lib/default-site-pages.js");
+
   for (const cat of DEFAULT_CATEGORIES) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
@@ -21,6 +23,20 @@ async function main() {
     });
   }
   console.log("Seeded default categories.");
+
+  for (const page of SITE_PAGE_DEFINITIONS) {
+    await prisma.sitePage.upsert({
+      where: { slug: page.slug },
+      update: {},
+      create: {
+        slug: page.slug,
+        title: page.title,
+        content: page.content,
+        contentFormat: "RICHTEXT",
+      },
+    });
+  }
+  console.log("Seeded default site pages.");
 }
 
 main()

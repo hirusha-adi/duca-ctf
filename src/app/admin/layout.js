@@ -9,6 +9,7 @@ import {
   FileText,
   Activity,
   History,
+  ScrollText,
 } from "lucide-react";
 
 const adminLinks = [
@@ -18,6 +19,7 @@ const adminLinks = [
   { href: "/admin/challenges", label: "Challenges", icon: Puzzle },
   { href: "/admin/submissions", label: "Submissions", icon: History },
   { href: "/admin/writeups", label: "Writeups", icon: FileText },
+  { href: "/admin/pages", label: "Pages", icon: ScrollText },
   { href: "/admin/telemetry", label: "Telemetry", icon: Activity },
 ];
 
