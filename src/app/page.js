@@ -40,14 +40,17 @@ export default async function HomePage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <section className="mb-12">
-        <h1 className="text-3xl font-bold tracking-tight">DUCA CTF</h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
+      <section className="mb-16 flex flex-col items-center px-4 pt-8 text-center md:pt-12">
+        <h1 className="text-5xl font-bold tracking-[0.12em] text-foreground sm:text-6xl lg:text-7xl">
+          DUCA
+          <span className="text-primary"> CTF</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
           Deakin University Cybersecurity Association capture-the-flag platform.
         </p>
 
         {activeCompetitions.length > 0 ? (
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             {activeCompetitions.map((comp) => (
               <Button key={comp.id} asChild variant="outline">
                 <Link href={`/competitions/${comp.slug}`}>
@@ -58,7 +61,7 @@ export default async function HomePage() {
             ))}
           </div>
         ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
+          <p className="mt-6 text-sm text-muted-foreground">
             No active competitions right now. Check back soon.
           </p>
         )}
