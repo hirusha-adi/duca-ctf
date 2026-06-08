@@ -23,7 +23,8 @@ export function SupportInbox({
   const searchParams = useSearchParams();
   const [tickets, setTickets] = useState(initialTickets);
   const [selectedId, setSelectedId] = useState(initialTicketId);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const ticketFromUrl = searchParams.get("ticket");
   const showNew = searchParams.get("new") === "1" && !isAdmin;
@@ -34,11 +35,18 @@ export function SupportInbox({
     }
   }, [isAdmin, ticketFromUrl]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchInput);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const loadTickets = useCallback(async () => {
     const params = new URLSearchParams();
     if (isAdmin) {
       if (statusFilter !== "ALL") params.set("status", statusFilter);
-      if (searchQuery.trim()) params.set("q", searchQuery.trim());
+      if (debouncedSearchQuery.trim()) params.set("q", debouncedSearchQuery.trim());
     }
 
     const url = isAdmin
@@ -50,7 +58,7 @@ export function SupportInbox({
       const data = await res.json();
       setTickets(data.tickets);
     }
-  }, [isAdmin, statusFilter, searchQuery, ticketsApiBase]);
+  }, [isAdmin, statusFilter, debouncedSearchQuery, ticketsApiBase]);
 
   const handleTicketUpdate = useCallback((updated) => {
     if (!updated?.id) return;
@@ -121,8 +129,8 @@ export function SupportInbox({
           selectedId={selectedId}
           onSelect={handleSelect}
           showUser={isAdmin}
-          searchQuery={searchQuery}
-          onSearchChange={isAdmin ? setSearchQuery : undefined}
+          searchQuery={searchInput}
+          onSearchChange={isAdmin ? setSearchInput : undefined}
           basePath={basePath}
           onNewTicket={
             !isAdmin
