@@ -43,6 +43,7 @@ export async function POST(request, { params }) {
       where: { id },
       include: {
         competition: true,
+        category: { select: { id: true, name: true } },
         flags: { select: { id: true, flagHash: true } },
       },
     });
@@ -72,7 +73,11 @@ export async function POST(request, { params }) {
         ip,
         userAgent,
         action: TELEMETRY_ACTIONS.FLAG_SUBMIT_INCORRECT,
-        metadata: { challengeId: id },
+        metadata: {
+          challengeId: id,
+          categoryId: challenge.categoryId,
+          competitionId: challenge.competitionId,
+        },
       });
       return NextResponse.json({ error: "Incorrect flag" }, { status: 400 });
     }
@@ -112,7 +117,13 @@ export async function POST(request, { params }) {
       ip,
       userAgent,
       action: TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT,
-      metadata: { challengeId: id, flagId: matchedFlag.id, pointsAwarded },
+      metadata: {
+        challengeId: id,
+        flagId: matchedFlag.id,
+        pointsAwarded,
+        categoryId: challenge.categoryId,
+        competitionId: challenge.competitionId,
+      },
     });
 
     const message =
