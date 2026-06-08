@@ -5,6 +5,7 @@ import { generateCompetitionSlug } from "@/lib/slugs";
 import { parseDatetimeLocalToUTC } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export async function PATCH(request, { params }) {
   try {
@@ -28,6 +29,13 @@ export async function PATCH(request, { params }) {
     if (body.endAt) data.endAt = parseDatetimeLocalToUTC(body.endAt);
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;
     if (body.status) data.status = body.status;
+    if (body.description !== undefined) {
+      data.description =
+        body.descriptionFormat === "RICHTEXT"
+          ? sanitizeHtml(body.description)
+          : body.description;
+    }
+    if (body.descriptionFormat) data.descriptionFormat = body.descriptionFormat;
 
     const competition = await prisma.competition.update({
       where: { id },

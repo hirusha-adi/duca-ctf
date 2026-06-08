@@ -60,15 +60,17 @@ model Category {
 }
 
 model Competition {
-  id         String            @id @default(cuid())
-  name       String
-  slug       String            @unique
-  startAt    DateTime
-  endAt      DateTime
-  hidden     Boolean           @default(false)
-  status     CompetitionStatus @default(DRAFT)
-  createdAt  DateTime          @default(now())
-  challenges Challenge[]
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String            @default("")
+  descriptionFormat ContentFormat     @default(MARKDOWN)
+  startAt           DateTime
+  endAt             DateTime
+  hidden            Boolean           @default(false)
+  status            CompetitionStatus @default(DRAFT)
+  createdAt         DateTime          @default(now())
+  challenges        Challenge[]
 }
 
 model Challenge {

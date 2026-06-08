@@ -22,7 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DualEditor } from "@/components/editor/dual-editor";
+import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { toEditorHtml } from "@/lib/content-format";
 
 const emptyForm = {
   title: "",
@@ -30,7 +31,6 @@ const emptyForm = {
   categoryId: "",
   points: 100,
   description: "",
-  descriptionFormat: "MARKDOWN",
   startAt: "",
   useCustomStart: false,
   hidden: false,
@@ -136,7 +136,11 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       const res = await fetch(url, {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, flags: flagsPayload }),
+        body: JSON.stringify({
+          ...form,
+          flags: flagsPayload,
+          descriptionFormat: "RICHTEXT",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -178,8 +182,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       competitionId: ch.competitionId,
       categoryId: ch.categoryId,
       points: ch.points,
-      description: ch.description,
-      descriptionFormat: ch.descriptionFormat,
+      description: toEditorHtml(ch.description, ch.descriptionFormat),
       startAt: ch.startAtLocal,
       useCustomStart,
       hidden: ch.hidden,
@@ -300,11 +303,12 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
 
             <div className="space-y-2">
               <Label>Description</Label>
-              <DualEditor
-                value={form.description}
-                format={form.descriptionFormat}
-                onChange={(v) => setForm({ ...form, description: v })}
-                onFormatChange={(f) => setForm({ ...form, descriptionFormat: f })}
+              <RichTextEditor
+                key={editing || "new"}
+                content={form.description}
+                onChange={(description) => setForm((prev) => ({ ...prev, description }))}
+                placeholder="Describe this challenge… paste images with Ctrl+V"
+                variant="compact"
               />
             </div>
 

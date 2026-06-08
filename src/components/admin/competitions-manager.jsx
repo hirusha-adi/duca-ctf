@@ -15,9 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { toEditorHtml } from "@/lib/content-format";
 
 const emptyForm = {
   name: "",
+  description: "",
   startAt: "",
   endAt: "",
   hidden: false,
@@ -43,7 +46,10 @@ export function AdminCompetitionsManager({ competitions: initial }) {
       const res = await fetch(url, {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          descriptionFormat: "RICHTEXT",
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -82,6 +88,7 @@ export function AdminCompetitionsManager({ competitions: initial }) {
     setEditing(comp.id);
     setForm({
       name: comp.name,
+      description: toEditorHtml(comp.description, comp.descriptionFormat),
       startAt: comp.startAtLocal,
       endAt: comp.endAtLocal,
       hidden: comp.hidden,
@@ -123,6 +130,16 @@ export function AdminCompetitionsManager({ competitions: initial }) {
                 value={form.endAt}
                 onChange={(e) => setForm({ ...form, endAt: e.target.value })}
                 required
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Description</Label>
+              <RichTextEditor
+                key={editing || "new"}
+                content={form.description}
+                onChange={(description) => setForm((prev) => ({ ...prev, description }))}
+                placeholder="Describe this competition… paste images with Ctrl+V"
+                variant="compact"
               />
             </div>
             <div className="flex items-center gap-2">

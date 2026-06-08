@@ -9,6 +9,7 @@ import { formatInAEST } from "@/lib/timezone";
 import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
 import { cn } from "@/lib/utils";
+import { ContentRenderer } from "@/components/challenge/content-renderer";
 
 export default async function CompetitionPage({ params }) {
   const { slug } = await params;
@@ -53,6 +54,14 @@ export default async function CompetitionPage({ params }) {
         <p className="mt-1 text-sm text-muted-foreground">
           {formatInAEST(competition.startAt)} — {formatInAEST(competition.endAt)}
         </p>
+        {competition.description && (
+          <div className="mt-4 max-w-3xl">
+            <ContentRenderer
+              content={competition.description}
+              format={competition.descriptionFormat}
+            />
+          </div>
+        )}
       </div>
 
       {ended ? (

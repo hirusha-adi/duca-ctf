@@ -5,6 +5,7 @@ import { generateCompetitionSlug } from "@/lib/slugs";
 import { parseDatetimeLocalToUTC } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export async function POST(request) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request) {
     const ip = getClientIp(request);
     const userAgent = getUserAgent(request);
 
-    const { name, startAt, endAt, hidden, status } = body;
+    const { name, startAt, endAt, hidden, status, description, descriptionFormat } = body;
 
     if (!name || !startAt || !endAt) {
       return NextResponse.json({ error: "Name, start and end required" }, { status: 400 });
@@ -25,6 +26,9 @@ export async function POST(request) {
       data: {
         name,
         slug,
+        description:
+          descriptionFormat === "RICHTEXT" ? sanitizeHtml(description || "") : description || "",
+        descriptionFormat: descriptionFormat || "MARKDOWN",
         startAt: parseDatetimeLocalToUTC(startAt),
         endAt: parseDatetimeLocalToUTC(endAt),
         hidden: hidden ?? false,

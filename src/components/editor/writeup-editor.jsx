@@ -28,7 +28,13 @@ async function insertImageFile(editor, file) {
   editor.chain().focus().setImage({ src: url, alt: file.name }).run();
 }
 
-export function WriteupEditor({ content, onChange, disabled = false }) {
+export function WriteupEditor({
+  content,
+  onChange,
+  disabled = false,
+  placeholder = "Start writing… paste images with Ctrl+V",
+  variant = "full",
+}) {
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -40,9 +46,7 @@ export function WriteupEditor({ content, onChange, disabled = false }) {
       }),
       Link.configure({ openOnClick: false, autolink: true }),
       Image.configure({ inline: false, allowBase64: false }),
-      Placeholder.configure({
-        placeholder: "Start writing… paste images with Ctrl+V",
-      }),
+      Placeholder.configure({ placeholder }),
     ],
     content: content || "",
     editable: !disabled,
@@ -150,9 +154,16 @@ export function WriteupEditor({ content, onChange, disabled = false }) {
     { icon: ImageIcon, action: () => fileInputRef.current?.click(), active: false },
   ];
 
+  const isCompact = variant === "compact";
+
   return (
     <div className="writeup-editor">
-      <div className="sticky top-14 z-10 mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card/95 p-1.5 backdrop-blur">
+      <div
+        className={cn(
+          "z-10 mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card/95 p-1.5 backdrop-blur",
+          isCompact ? "sticky top-0" : "sticky top-14"
+        )}
+      >
         {tools.map(({ icon: Icon, action, active }, i) => (
           <Button
             key={i}
@@ -178,7 +189,12 @@ export function WriteupEditor({ content, onChange, disabled = false }) {
         />
       </div>
 
-      <div className="min-h-[60vh] rounded-lg border border-border bg-card px-6 py-8 md:px-12">
+      <div
+        className={cn(
+          "rounded-lg border border-border bg-card",
+          isCompact ? "min-h-[240px] px-4 py-5" : "min-h-[60vh] px-6 py-8 md:px-12"
+        )}
+      >
         <EditorContent editor={editor} />
       </div>
     </div>

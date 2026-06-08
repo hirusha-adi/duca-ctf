@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { marked } from "marked";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -12,16 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WriteupEditor } from "@/components/editor/writeup-editor";
+import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { toEditorHtml } from "@/lib/content-format";
 import { cn } from "@/lib/utils";
-
-function getWriteupContent(writeup) {
-  if (!writeup?.content) return "";
-  if (writeup.contentFormat === "MARKDOWN") {
-    return marked.parse(writeup.content);
-  }
-  return writeup.content;
-}
 
 export function AdminWriteupsManager({ competitions }) {
   const [competitionId, setCompetitionId] = useState("");
@@ -52,7 +44,7 @@ export function AdminWriteupsManager({ competitions }) {
       latestContentRef.current = "";
       return;
     }
-    const html = getWriteupContent(ch.writeup);
+    const html = toEditorHtml(ch.writeup?.content, ch.writeup?.contentFormat);
     setContent(html);
     latestContentRef.current = html;
     setSaveState(ch.writeup ? "saved" : "idle");
@@ -238,7 +230,7 @@ export function AdminWriteupsManager({ competitions }) {
             </div>
           </div>
 
-          <WriteupEditor key={challengeId} content={content} onChange={setContent} />
+          <RichTextEditor key={challengeId} content={content} onChange={setContent} />
         </div>
       )}
     </div>
