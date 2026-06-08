@@ -155,13 +155,20 @@ export function WriteupEditor({
   ];
 
   const isCompact = variant === "compact";
+  const isEmbedded = variant === "embedded";
 
   return (
-    <div className="writeup-editor">
+    <div
+      className={cn(
+        "writeup-editor",
+        isEmbedded && "flex min-h-0 flex-1 flex-col overflow-hidden"
+      )}
+    >
       <div
         className={cn(
-          "z-10 mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card/95 p-1.5 backdrop-blur",
-          isCompact ? "sticky top-0" : "sticky top-14"
+          "z-10 flex flex-wrap items-center gap-1 rounded-lg border border-border bg-card/95 p-1.5 backdrop-blur",
+          isEmbedded ? "mb-3 shrink-0" : "mb-3",
+          !isEmbedded && (isCompact ? "sticky top-0" : "sticky top-14")
         )}
       >
         {tools.map(({ icon: Icon, action, active }, i) => (
@@ -192,7 +199,9 @@ export function WriteupEditor({
       <div
         className={cn(
           "rounded-lg border border-border bg-card",
-          isCompact ? "min-h-[240px] px-4 py-5" : "min-h-[60vh] px-6 py-8 md:px-12"
+          isEmbedded && "min-h-0 flex-1 overflow-y-auto px-6 py-8 md:px-12",
+          isCompact && !isEmbedded && "min-h-[240px] px-4 py-5",
+          !isCompact && !isEmbedded && "min-h-[60vh] px-6 py-8 md:px-12"
         )}
       >
         <EditorContent editor={editor} />

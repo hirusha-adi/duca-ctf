@@ -20,6 +20,18 @@ function getPageHtml(page) {
   return page ? toEditorHtml(page.content, page.contentFormat) : "";
 }
 
+function SitePageEditor({ editorKey, content, onChange }) {
+  return (
+    <RichTextEditor
+      key={editorKey}
+      content={content}
+      onChange={onChange}
+      placeholder="Start writing… paste images with Ctrl+V"
+      variant="embedded"
+    />
+  );
+}
+
 function PageEditorToolbar({
   page,
   saveState,
@@ -71,12 +83,28 @@ function PageEditorToolbar({
   );
 }
 
+function SidebarPageButton({ page, selected, onSelect }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(page.slug)}
+      className={cn(
+        "w-full rounded-md border border-border bg-background p-3 text-left transition-colors hover:border-primary/50",
+        selected && "border-primary ring-1 ring-primary"
+      )}
+    >
+      <div className="font-medium">{page.title}</div>
+      <div className="mt-1 truncate text-xs text-muted-foreground">
+        {getSitePagePath(page)}
+      </div>
+    </button>
+  );
+}
+
 export function AdminSitePagesManager({ systemPages, customPages: initialCustomPages }) {
   const router = useRouter();
   const [customPages, setCustomPages] = useState(initialCustomPages);
-
-  const [systemSlug, setSystemSlug] = useState(() => systemPages[0]?.slug || "");
-  const [customSlug, setCustomSlug] = useState("");
+  const [selectedSlug, setSelectedSlug] = useState(() => systemPages[0]?.slug || "");
 
   const [content, setContent] = useState(() => getPageHtml(systemPages[0]));
   const [title, setTitle] = useState("");
@@ -97,21 +125,15 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
   const latestContentRef = useRef(getPageHtml(systemPages[0]));
   const skipSaveRef = useRef(false);
 
-  const selectedSystemPage = useMemo(
-    () => systemPages.find((p) => p.slug === systemSlug),
-    [systemPages, systemSlug]
-  );
+  const selectedPage = useMemo(() => {
+    const system = systemPages.find((p) => p.slug === selectedSlug);
+    if (system) return system;
+    return customPages.find((p) => p.slug === selectedSlug) || null;
+  }, [systemPages, customPages, selectedSlug]);
 
-  const selectedCustomPage = useMemo(
-    () => customPages.find((p) => p.slug === customSlug),
-    [customPages, customSlug]
-  );
+  const isSystemPage = Boolean(selectedPage?.isSystem);
 
-  const activePage = selectedCustomPage || selectedSystemPage;
-  const activeSlug = activePage?.slug;
-  const isCustomActive = Boolean(selectedCustomPage);
-
-  const loadPage = useCallback((page, { isCustom }) => {
+  const loadPage = useCallback((page) => {
     skipSaveRef.current = true;
     if (!page) {
       setContent("");
@@ -121,7 +143,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     const html = getPageHtml(page);
     setContent(html);
     latestContentRef.current = html;
-    if (isCustom) {
+    if (!page.isSystem) {
       setTitle(page.title);
       setEditSlug(page.slug);
     }
@@ -131,29 +153,23 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     setDetailsError(null);
   }, []);
 
-  function selectSystemPage(slug) {
-    setCustomSlug("");
-    setSystemSlug(slug);
-    const page = systemPages.find((p) => p.slug === slug);
-    loadPage(page, { isCustom: false });
-  }
-
-  function selectCustomPage(slug) {
-    setSystemSlug("");
-    setCustomSlug(slug);
-    const page = customPages.find((p) => p.slug === slug);
-    loadPage(page, { isCustom: true });
+  function selectPage(slug) {
+    setSelectedSlug(slug);
+    const page =
+      systemPages.find((p) => p.slug === slug) ||
+      customPages.find((p) => p.slug === slug);
+    loadPage(page);
   }
 
   const saveContent = useCallback(
     async (html) => {
-      if (!activeSlug) return;
+      if (!selectedSlug) return;
 
       setSaveState("saving");
       setError(null);
 
       try {
-        const res = await fetch(`/api/admin/pages/${activeSlug}`, {
+        const res = await fetch(`/api/admin/pages/${selectedSlug}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -167,12 +183,12 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
           setError(data.error || "Save failed");
           return;
         }
-        if (isCustomActive && data.page) {
+        if (!isSystemPage && data.page) {
           setCustomPages((prev) =>
-            prev.map((p) => (p.slug === activeSlug ? data.page : p))
+            prev.map((p) => (p.slug === selectedSlug ? data.page : p))
           );
-          if (data.page.slug !== activeSlug) {
-            setCustomSlug(data.page.slug);
+          if (data.page.slug !== selectedSlug) {
+            setSelectedSlug(data.page.slug);
           }
         }
         setSaveState("saved");
@@ -181,11 +197,11 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
         setError("Save failed");
       }
     },
-    [activeSlug, isCustomActive]
+    [selectedSlug, isSystemPage]
   );
 
   async function saveCustomDetails() {
-    if (!selectedCustomPage) return;
+    if (!selectedPage || isSystemPage) return;
 
     const normalized = normalizePageSlug(editSlug);
     const formatError = validatePageSlugFormat(normalized);
@@ -204,7 +220,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     setDetailsError(null);
 
     try {
-      const res = await fetch(`/api/admin/pages/${selectedCustomPage.slug}`, {
+      const res = await fetch(`/api/admin/pages/${selectedPage.slug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -222,12 +238,12 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
       }
 
       setCustomPages((prev) => {
-        const next = prev.filter((p) => p.slug !== selectedCustomPage.slug);
+        const next = prev.filter((p) => p.slug !== selectedPage.slug);
         next.push(data.page);
         next.sort((a, b) => a.title.localeCompare(b.title));
         return next;
       });
-      setCustomSlug(data.page.slug);
+      setSelectedSlug(data.page.slug);
       setEditSlug(data.page.slug);
       setTitle(data.page.title);
       setDetailsState("saved");
@@ -276,7 +292,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
       );
       setNewSlug("");
       setNewTitle("");
-      selectCustomPage(data.page.slug);
+      selectPage(data.page.slug);
       router.refresh();
     } catch {
       setCreateError("Create failed");
@@ -285,16 +301,14 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     }
   }
 
-  async function deleteCustomPage() {
-    if (!selectedCustomPage) return;
-    if (
-      !confirm(`Delete "${selectedCustomPage.title}"? This cannot be undone.`)
-    ) {
+  async function deleteSelectedPage() {
+    if (!selectedPage || isSystemPage) return;
+    if (!confirm(`Delete "${selectedPage.title}"? This cannot be undone.`)) {
       return;
     }
 
     try {
-      const res = await fetch(`/api/admin/pages/${selectedCustomPage.slug}`, {
+      const res = await fetch(`/api/admin/pages/${selectedPage.slug}`, {
         method: "DELETE",
       });
       const data = await res.json();
@@ -303,14 +317,13 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
         return;
       }
 
-      setCustomPages((prev) =>
-        prev.filter((p) => p.slug !== selectedCustomPage.slug)
-      );
-      setCustomSlug("");
-      setContent("");
-      latestContentRef.current = "";
+      setCustomPages((prev) => prev.filter((p) => p.slug !== selectedPage.slug));
       if (systemPages[0]) {
-        selectSystemPage(systemPages[0].slug);
+        selectPage(systemPages[0].slug);
+      } else {
+        setSelectedSlug("");
+        setContent("");
+        latestContentRef.current = "";
       }
       router.refresh();
     } catch {
@@ -325,7 +338,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
   useEffect(() => {
     latestContentRef.current = content;
 
-    if (!activeSlug) return;
+    if (!selectedSlug) return;
 
     if (skipSaveRef.current) {
       skipSaveRef.current = false;
@@ -341,7 +354,7 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [content, activeSlug, saveContent]);
+  }, [content, selectedSlug, saveContent]);
 
   const newSlugPreview = normalizePageSlug(newSlug);
   const newSlugFormatError = newSlugPreview
@@ -349,212 +362,187 @@ export function AdminSitePagesManager({ systemPages, customPages: initialCustomP
     : null;
 
   return (
-    <div className="space-y-10">
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Main pages</h2>
-          <p className="text-sm text-muted-foreground">
-            General Rules, Terms of Service, and Privacy Policy use fixed URLs at the
-            site root. Only the body content is editable here.
-          </p>
-        </div>
+    <section className="flex h-[min(88vh,68rem)] flex-col gap-4">
+      <div className="shrink-0">
+        <p className="text-sm text-muted-foreground">
+          Main legal pages use fixed root URLs. Custom pages are published under{" "}
+          <code className="text-xs">/pages/your-slug</code>.
+        </p>
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {systemPages.map((page) => (
-            <button
-              key={page.slug}
-              type="button"
-              onClick={() => selectSystemPage(page.slug)}
-              className={cn(
-                "rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/50",
-                systemSlug === page.slug && !customSlug && "border-primary ring-1 ring-primary"
-              )}
-            >
-              <div className="font-medium">{page.title}</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {getSitePagePath(page)}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {selectedSystemPage && !customSlug && (
-          <div className="space-y-4 rounded-lg border border-border bg-card p-4">
-            <PageEditorToolbar
-              page={selectedSystemPage}
-              saveState={saveState}
-              error={error}
-              onSaveNow={() => saveContent(content)}
-            />
-            <RichTextEditor
-              key={`system-${selectedSystemPage.slug}`}
-              content={content}
-              onChange={setContent}
-            />
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-4 border-t border-border pt-10">
-        <div>
-          <h2 className="text-lg font-semibold">Custom pages</h2>
-          <p className="text-sm text-muted-foreground">
-            Additional pages are published under{" "}
-            <code className="text-xs">/pages/your-slug</code>. Slugs must not match an
-            existing app route.
-          </p>
-        </div>
-
-        <form
-          onSubmit={createCustomPage}
-          className="grid gap-4 rounded-lg border border-border bg-card p-4 md:grid-cols-[1fr_1fr_auto]"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="new-page-slug">Slug</Label>
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 text-sm text-muted-foreground">/pages/</span>
-              <Input
-                id="new-page-slug"
-                value={newSlug}
-                onChange={(e) => {
-                  setNewSlug(e.target.value);
-                  setCreateError(null);
-                }}
-                placeholder="about-duca"
-                autoComplete="off"
-              />
-            </div>
-            {newSlugPreview && newSlugFormatError && (
-              <p className="text-xs text-destructive">{newSlugFormatError}</p>
-            )}
-            {newSlugPreview && !newSlugFormatError && (
-              <p className="text-xs text-muted-foreground">
-                Preview URL: /pages/{newSlugPreview}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="new-page-title">Title</Label>
+      <form
+        onSubmit={createCustomPage}
+        className="grid shrink-0 gap-4 rounded-lg border border-border bg-card p-4 md:grid-cols-[1fr_1fr_auto]"
+      >
+        <div className="space-y-2">
+          <Label htmlFor="new-page-slug">Slug</Label>
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-sm text-muted-foreground">/pages/</span>
             <Input
-              id="new-page-title"
-              value={newTitle}
+              id="new-page-slug"
+              value={newSlug}
               onChange={(e) => {
-                setNewTitle(e.target.value);
+                setNewSlug(e.target.value);
                 setCreateError(null);
               }}
-              placeholder="About DUCA"
+              placeholder="about-duca"
+              autoComplete="off"
             />
           </div>
-          <div className="flex items-end">
-            <Button type="submit" disabled={creating}>
-              <Plus className="mr-2 h-4 w-4" />
-              {creating ? "Creating…" : "Add page"}
-            </Button>
-          </div>
-          {createError && (
-            <p className="text-sm text-destructive md:col-span-3">{createError}</p>
+          {newSlugPreview && newSlugFormatError && (
+            <p className="text-xs text-destructive">{newSlugFormatError}</p>
           )}
-        </form>
-
-        {customPages.length > 0 ? (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {customPages.map((page) => (
-              <button
-                key={page.id}
-                type="button"
-                onClick={() => selectCustomPage(page.slug)}
-                className={cn(
-                  "rounded-lg border border-border bg-card p-4 text-left transition-colors hover:border-primary/50",
-                  customSlug === page.slug && "border-primary ring-1 ring-primary"
-                )}
-              >
-                <div className="font-medium">{page.title}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {getSitePagePath(page)}
-                </div>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">No custom pages yet.</p>
+          {newSlugPreview && !newSlugFormatError && (
+            <p className="text-xs text-muted-foreground">
+              Preview URL: /pages/{newSlugPreview}
+            </p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="new-page-title">Title</Label>
+          <Input
+            id="new-page-title"
+            value={newTitle}
+            onChange={(e) => {
+              setNewTitle(e.target.value);
+              setCreateError(null);
+            }}
+            placeholder="About DUCA"
+          />
+        </div>
+        <div className="flex items-end">
+          <Button type="submit" disabled={creating}>
+            <Plus className="mr-2 h-4 w-4" />
+            {creating ? "Creating…" : "Add page"}
+          </Button>
+        </div>
+        {createError && (
+          <p className="text-sm text-destructive md:col-span-3">{createError}</p>
         )}
+      </form>
 
-        {selectedCustomPage && (
-          <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+      <div className="grid min-h-[28rem] flex-1 gap-4 lg:grid-cols-[minmax(12rem,16rem)_1fr]">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card">
+          <div className="shrink-0 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Pages
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="shrink-0 space-y-2 border-b border-border bg-card p-2">
+              {systemPages.map((page) => (
+                <SidebarPageButton
+                  key={page.slug}
+                  page={page}
+                  selected={selectedSlug === page.slug}
+                  onSelect={selectPage}
+                />
+              ))}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              {customPages.length > 0 ? (
+                <div className="space-y-2">
+                  {customPages.map((page) => (
+                    <SidebarPageButton
+                      key={page.id}
+                      page={page}
+                      selected={selectedSlug === page.slug}
+                      onSelect={selectPage}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="p-2 text-sm text-muted-foreground">No custom pages yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {selectedPage ? (
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden rounded-lg border border-border bg-card p-4">
             <PageEditorToolbar
-              page={{
-                ...selectedCustomPage,
-                title: title || selectedCustomPage.title,
-              }}
+              page={
+                isSystemPage
+                  ? selectedPage
+                  : { ...selectedPage, title: title || selectedPage.title }
+              }
               saveState={saveState}
               error={error}
               onSaveNow={() => saveContent(content)}
               extraActions={
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="destructive"
-                  onClick={deleteCustomPage}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
+                !isSystemPage ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={deleteSelectedPage}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                ) : null
               }
             />
 
-            <div className="grid gap-4 border-b border-border pb-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="edit-page-title">Title</Label>
-                <Input
-                  id="edit-page-title"
-                  value={title}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                    setDetailsState("idle");
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-page-slug">Slug</Label>
-                <div className="flex items-center gap-2">
-                  <span className="shrink-0 text-sm text-muted-foreground">/pages/</span>
+            {!isSystemPage && (
+              <div className="shrink-0 grid gap-4 border-b border-border pb-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-page-title">Title</Label>
                   <Input
-                    id="edit-page-slug"
-                    value={editSlug}
+                    id="edit-page-title"
+                    value={title}
                     onChange={(e) => {
-                      setEditSlug(e.target.value);
+                      setTitle(e.target.value);
                       setDetailsState("idle");
                     }}
-                    autoComplete="off"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-page-slug">Slug</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 text-sm text-muted-foreground">/pages/</span>
+                    <Input
+                      id="edit-page-slug"
+                      value={editSlug}
+                      onChange={(e) => {
+                        setEditSlug(e.target.value);
+                        setDetailsState("idle");
+                      }}
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+                  <Button type="button" size="sm" variant="secondary" onClick={saveCustomDetails}>
+                    Save title &amp; slug
+                  </Button>
+                  {detailsState === "saving" && (
+                    <span className="text-xs text-muted-foreground">Saving details…</span>
+                  )}
+                  {detailsState === "saved" && (
+                    <span className="text-xs text-primary">Details saved</span>
+                  )}
+                  {detailsState === "error" && (
+                    <span className="text-xs text-destructive">
+                      {detailsError || "Save failed"}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-3 md:col-span-2">
-                <Button type="button" size="sm" variant="secondary" onClick={saveCustomDetails}>
-                  Save title &amp; slug
-                </Button>
-                {detailsState === "saving" && (
-                  <span className="text-xs text-muted-foreground">Saving details…</span>
-                )}
-                {detailsState === "saved" && (
-                  <span className="text-xs text-primary">Details saved</span>
-                )}
-                {detailsState === "error" && (
-                  <span className="text-xs text-destructive">
-                    {detailsError || "Save failed"}
-                  </span>
-                )}
-              </div>
-            </div>
+            )}
 
-            <RichTextEditor
-              key={`custom-${selectedCustomPage.slug}`}
-              content={content}
-              onChange={setContent}
-            />
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <SitePageEditor
+                editorKey={`page-${selectedPage.slug}`}
+                content={content}
+                onChange={setContent}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex min-h-[12rem] items-center justify-center rounded-lg border border-dashed border-border bg-card/50 p-6 text-sm text-muted-foreground">
+            Select a page to edit, or create a custom page above.
           </div>
         )}
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }

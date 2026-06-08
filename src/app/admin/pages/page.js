@@ -8,8 +8,7 @@ export default async function AdminPagesPage() {
     <div>
       <h1 className="mb-2 text-2xl font-bold">Site Pages</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Edit main legal pages and create custom content pages. Body text auto-saves as
-        you type.
+        Select a page from the sidebar to edit. Body text auto-saves as you type.
       </p>
       <AdminSitePagesManager systemPages={systemPages} customPages={customPages} />
     </div>
