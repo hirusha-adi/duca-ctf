@@ -6,6 +6,7 @@ import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { normalizePageSlug } from "@/lib/site-page-slug";
 import { validateCustomPageSlug } from "@/lib/site-pages";
+import { revalidateSitePages } from "@/lib/revalidate-site-pages";
 
 export async function PUT(request, { params }) {
   try {
@@ -69,6 +70,8 @@ export async function PUT(request, { params }) {
       metadata: { action: "save_site_page", slug: page.slug },
     });
 
+    revalidateSitePages({ slug: page.slug, previousSlug: currentSlug });
+
     return NextResponse.json({ page });
   } catch (err) {
     if (err.code === "P2002") {
@@ -116,6 +119,8 @@ export async function DELETE(request, { params }) {
       action: TELEMETRY_ACTIONS.ADMIN_ACTION,
       metadata: { action: "delete_site_page", slug },
     });
+
+    revalidateSitePages({ slug });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

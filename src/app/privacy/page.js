@@ -1,5 +1,7 @@
 import { SitePageContent } from "@/components/site/site-page-content";
 
+export const revalidate = 60;
+
 export const metadata = {
   title: "Privacy Policy · DUCA CTF",
 };

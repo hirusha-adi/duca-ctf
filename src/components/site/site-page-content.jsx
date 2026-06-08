@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSitePage } from "@/lib/site-pages";
+import { getCachedSitePage } from "@/lib/site-pages";
 import { ContentRenderer } from "@/components/challenge/content-renderer";
 import { formatInAEST } from "@/lib/timezone";
 
@@ -8,7 +8,7 @@ export async function SitePageContent({
   page: pageProp,
   showHiddenBanner = false,
 }) {
-  const page = pageProp ?? (slug ? await getSitePage(slug) : null);
+  const page = pageProp ?? (slug ? await getCachedSitePage(slug) : null);
 
   if (!page) {
     notFound();

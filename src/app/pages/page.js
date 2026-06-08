@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
-import { listPublicSitePages } from "@/lib/site-pages";
+import { getCachedPublicSitePages } from "@/lib/site-pages";
 import { getSitePagePath } from "@/lib/site-page-paths";
 import {
   Table,
@@ -11,12 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+export const revalidate = 60;
+
 export const metadata = {
   title: "Pages · DUCA CTF",
 };
 
 export default async function SitePagesIndexPage() {
-  const pages = await listPublicSitePages();
+  const pages = await getCachedPublicSitePages();
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

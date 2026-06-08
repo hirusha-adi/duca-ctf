@@ -6,6 +6,7 @@ import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { normalizePageSlug } from "@/lib/site-page-slug";
 import { validateCustomPageSlug } from "@/lib/site-pages";
+import { revalidateSitePages } from "@/lib/revalidate-site-pages";
 
 export async function POST(request) {
   try {
@@ -48,6 +49,8 @@ export async function POST(request) {
       action: TELEMETRY_ACTIONS.ADMIN_ACTION,
       metadata: { action: "create_site_page", slug },
     });
+
+    revalidateSitePages({ slug: page.slug });
 
     return NextResponse.json({ page }, { status: 201 });
   } catch (err) {
