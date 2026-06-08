@@ -1,12 +1,12 @@
-import Link from "next/link";
-import { getVisibleCompetitions } from "@/lib/competitions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { formatInAEST } from "@/lib/timezone";
+import { getVisibleCompetitions, isCompetitionActive } from "@/lib/competitions";
+import { CompetitionPreview } from "@/components/competition/competition-preview";
+import { CompetitionCard } from "@/components/competition/competition-card";
 
 export default async function CompetitionsPage() {
   const competitions = await getVisibleCompetitions();
-  const now = new Date();
+
+  const active = competitions.filter((comp) => isCompetitionActive(comp));
+  const inactive = competitions.filter((comp) => !isCompetitionActive(comp));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -15,32 +15,31 @@ export default async function CompetitionsPage() {
       {competitions.length === 0 ? (
         <p className="text-muted-foreground">No competitions available.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {competitions.map((comp) => {
-            const isActive =
-              comp.status !== "ENDED" && comp.startAt <= now && comp.endAt >= now;
-            const isUpcoming = comp.startAt > now;
-            const isEnded = comp.status === "ENDED" || comp.endAt < now;
+        <div className="space-y-10">
+          {active.length > 0 && (
+            <section>
+              <div className="space-y-4">
+                {active.map((comp) => (
+                  <CompetitionPreview key={comp.id} competition={comp} />
+                ))}
+              </div>
+            </section>
+          )}
 
-            return (
-              <Link key={comp.id} href={`/competitions/${comp.slug}`}>
-                <Card className="h-full transition-colors hover:border-primary/50">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg">{comp.name}</CardTitle>
-                      {isActive && <Badge variant="success">Active</Badge>}
-                      {isUpcoming && <Badge variant="warning">Upcoming</Badge>}
-                      {isEnded && <Badge variant="secondary">Ended</Badge>}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    <p>Start: {formatInAEST(comp.startAt)}</p>
-                    <p>End: {formatInAEST(comp.endAt)}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
+          {inactive.length > 0 && (
+            <section>
+              {active.length > 0 && (
+                <p className="mb-4 text-sm font-medium text-muted-foreground">
+                  Upcoming &amp; ended
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {inactive.map((comp) => (
+                  <CompetitionCard key={comp.id} competition={comp} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>
