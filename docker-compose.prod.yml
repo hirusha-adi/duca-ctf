@@ -1,0 +1,78 @@
+services:
+  hirusha-duca-ctf-postgres:
+    image: postgres:16
+    container_name: hirusha-duca-ctf-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-duca}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-duca_ctf}
+    volumes:
+      - hirusha-duca-ctf-pgdata:/var/lib/postgresql/data
+    networks:
+      - hirusha-duca-ctf-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-duca} -d ${POSTGRES_DB:-duca_ctf}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  hirusha-duca-ctf-redis:
+    image: redis:7-alpine
+    container_name: hirusha-duca-ctf-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - hirusha-duca-ctf-redisdata:/data
+    networks:
+      - hirusha-duca-ctf-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  hirusha-duca-ctf-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hirusha-duca-ctf-web:latest
+    container_name: hirusha-duca-ctf-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-duca}:${POSTGRES_PASSWORD}@hirusha-duca-ctf-postgres:5432/${POSTGRES_DB:-duca_ctf}
+      REDIS_URL: redis://hirusha-duca-ctf-redis:6379
+      UPLOAD_DIR: /app/data/uploads
+    volumes:
+      - hirusha-duca-ctf-uploads:/app/data/uploads
+    depends_on:
+      hirusha-duca-ctf-postgres:
+        condition: service_healthy
+      hirusha-duca-ctf-redis:
+        condition: service_healthy
+    networks:
+      - hirusha-duca-ctf-net
+      - intranet_1
+    expose:
+      - "3000"
+
+volumes:
+  hirusha-duca-ctf-pgdata:
+  hirusha-duca-ctf-redisdata:
+  hirusha-duca-ctf-uploads:
+
+networks:
+  hirusha-duca-ctf-net:
+    name: hirusha-duca-ctf-net
+    driver: bridge
+  intranet_1:
+    external: true

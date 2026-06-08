@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+!.env.prod.example
+README.md
+DESIGN_GUIDE.md
+coverage
+npm-debug.log*
+.DS_Store
+public/uploads/*
+!public/uploads/.gitkeep

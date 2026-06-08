@@ -8,9 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:up": "node -e \"console.log('Using existing Docker PostgreSQL on localhost:5432 (blume3-db).')\"",
-    "db:down": "node -e \"console.log('Database runs in shared Docker container; not stopped by this script.')\"",
+    "db:up": "sudo docker compose up -d",
+    "db:down": "sudo docker compose down",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
     "make-admin": "node scripts/make-admin.js"
