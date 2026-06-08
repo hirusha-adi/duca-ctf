@@ -4,7 +4,6 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ![](./docs/images/home_image.png)
 
-[Click here](./docs/architechture.md) to explore the app design.
 
 ## Features
 
@@ -19,6 +18,8 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ## Stack
 
+[Click here](./docs/architechture.md) to explore the system design / architechture.
+
 | Layer | Technology |
 |-------|------------|
 | App | Next.js 15 (App Router, JavaScript) |
@@ -26,8 +27,6 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 | Cache / pub-sub | Redis 7 |
 | UI | Tailwind CSS + shadcn/ui (dark theme) |
 | Production proxy | Caddy (external, via `intranet_1` Docker network) |
-
----
 
 ## Development guide
 
