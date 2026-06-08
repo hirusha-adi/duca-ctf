@@ -5,6 +5,7 @@ import { verifyFlag, normalizeFlag } from "@/lib/flags";
 import { isChallengeAvailable } from "@/lib/competitions";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { getUserChallengeSubmissionCount } from "@/lib/submissions";
 
 const submitRateLimit = new Map();
 
@@ -54,6 +55,16 @@ export async function POST(request, { params }) {
 
     if (!isChallengeAvailable(challenge, challenge.competition)) {
       return NextResponse.json({ error: "Challenge not available" }, { status: 403 });
+    }
+
+    if (challenge.submitLimit != null) {
+      const submissionCount = await getUserChallengeSubmissionCount(user.id, id);
+      if (submissionCount >= challenge.submitLimit) {
+        return NextResponse.json(
+          { error: "You have reached the submission limit for this challenge." },
+          { status: 429 }
+        );
+      }
     }
 
     const normalized = normalizeFlag(flag);

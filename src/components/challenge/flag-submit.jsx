@@ -1,11 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function FlagSubmit({ challengeId, disabled = false, disabledMessage }) {
+  const router = useRouter();
   const [flag, setFlag] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -35,6 +37,8 @@ export function FlagSubmit({ challengeId, disabled = false, disabledMessage }) {
       } else {
         setMessage(data.error || "Incorrect flag");
       }
+
+      router.refresh();
     } catch {
       setMessage("Something went wrong. Please try again.");
     } finally {

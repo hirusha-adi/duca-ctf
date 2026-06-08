@@ -7,6 +7,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { parseSubmitLimit } from "@/lib/submissions";
 
 export async function POST(request) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request) {
       useCustomStart,
       hidden,
       flags,
+      submitLimit,
     } = body;
 
     if (!title || !competitionId || !categoryId) {
@@ -65,6 +67,7 @@ export async function POST(request) {
         description: content || "",
         descriptionFormat: descriptionFormat || "MARKDOWN",
         startAt: resolvedStartAt,
+        submitLimit: parseSubmitLimit(submitLimit),
         hidden: hidden ?? false,
         flags: {
           create: await Promise.all(

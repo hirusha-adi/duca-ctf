@@ -83,6 +83,7 @@ model Challenge {
   description       String        @default("")
   descriptionFormat ContentFormat @default(MARKDOWN)
   startAt           DateTime
+  submitLimit       Int?
   hidden            Boolean       @default(false)
   createdAt         DateTime      @default(now())
   competition       Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)

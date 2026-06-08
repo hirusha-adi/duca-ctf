@@ -7,6 +7,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
+import { parseSubmitLimit } from "@/lib/submissions";
 
 export async function PATCH(request, { params }) {
   try {
@@ -48,6 +49,9 @@ export async function PATCH(request, { params }) {
     }
     if (body.descriptionFormat) data.descriptionFormat = body.descriptionFormat;
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;
+    if (body.submitLimit !== undefined) {
+      data.submitLimit = parseSubmitLimit(body.submitLimit);
+    }
 
     if (
       body.competitionId !== undefined ||

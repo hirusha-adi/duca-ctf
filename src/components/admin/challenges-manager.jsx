@@ -34,6 +34,8 @@ const emptyForm = {
   startAt: "",
   useCustomStart: false,
   hidden: false,
+  useSubmitLimit: false,
+  submitLimit: 10,
   flags: [{ value: "", label: "", id: null }],
 };
 
@@ -140,6 +142,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
           ...form,
           flags: flagsPayload,
           descriptionFormat: "RICHTEXT",
+          submitLimit: form.useSubmitLimit ? form.submitLimit : null,
         }),
       });
       const data = await res.json();
@@ -186,6 +189,8 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       startAt: ch.startAtLocal,
       useCustomStart,
       hidden: ch.hidden,
+      useSubmitLimit: ch.submitLimit != null,
+      submitLimit: ch.submitLimit ?? 10,
       flags: ch.flags.map((f) => ({
         id: f.id,
         label: f.label || "",
@@ -264,6 +269,33 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
                   onChange={(e) => setForm({ ...form, points: Number(e.target.value) })}
                   required
                 />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.useSubmitLimit}
+                    onCheckedChange={(useSubmitLimit) =>
+                      setForm({ ...form, useSubmitLimit })
+                    }
+                  />
+                  <Label>Submission limit (per user)</Label>
+                </div>
+                {form.useSubmitLimit && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Max submissions per user
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={form.submitLimit}
+                      onChange={(e) =>
+                        setForm({ ...form, submitLimit: Number(e.target.value) })
+                      }
+                      required
+                    />
+                  </div>
+                )}
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <div className="flex items-center gap-2">

@@ -16,6 +16,7 @@ import { formatInAEST } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { headers } from "next/headers";
+import { getUserChallengeSubmissionCount } from "@/lib/submissions";
 
 export default async function ChallengePage({ params }) {
   const { id } = await params;
@@ -55,11 +56,20 @@ export default async function ChallengePage({ params }) {
   const ended = isCompetitionEnded(challenge.competition);
   const isUpcoming = !ended && isChallengeUpcoming(challenge);
   const available = isChallengeAvailable(challenge, challenge.competition);
-  const submitDisabledMessage = ended
-    ? "This competition has ended. Flag submissions are closed."
-    : isUpcoming
-      ? "This challenge is not yet available for submission."
-      : "This challenge is not available for submission.";
+  const userSubmissionCount =
+    user && challenge.submitLimit != null
+      ? await getUserChallengeSubmissionCount(user.id, id)
+      : 0;
+  const submissionLimitReached =
+    challenge.submitLimit != null && userSubmissionCount >= challenge.submitLimit;
+
+  const submitDisabledMessage = submissionLimitReached
+    ? "You have reached the submission limit for this challenge."
+    : ended
+      ? "This competition has ended. Flag submissions are closed."
+      : isUpcoming
+        ? "This challenge is not yet available for submission."
+        : "This challenge is not available for submission.";
   const solved = user ? await userHasSolvedChallenge(user.id, id) : false;
   const solvedFlagIds = user ? await userSolvedFlags(user.id, id) : new Set();
 
@@ -134,7 +144,7 @@ export default async function ChallengePage({ params }) {
             ) : (
               <FlagSubmit
                 challengeId={id}
-                disabled={!available}
+                disabled={!available || submissionLimitReached}
                 disabledMessage={submitDisabledMessage}
               />
             )}
@@ -155,6 +165,12 @@ export default async function ChallengePage({ params }) {
                 <span className="text-muted-foreground">Flags captured: </span>
                 {solvedFlagIds.size} / {challenge.flags.length}
               </div>
+            )}
+            {challenge.submitLimit != null && user && (
+              <p>
+                <span className="text-muted-foreground">Your submissions: </span>
+                {userSubmissionCount} / {challenge.submitLimit}
+              </p>
             )}
           </CardContent>
         </Card>
