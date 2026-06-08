@@ -1,10 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { timeAgoInAEST } from "@/lib/timezone";
+import { adminUserPath } from "@/lib/admin-user-paths";
 
-export function LiveSolveFeed({ initialSolves, competitionId }) {
+function SolveUserName({ solve, isAdmin }) {
+  const label = solve.user.name || solve.user.email;
+  if (!isAdmin || !solve.user.email) {
+    return <span className="font-medium">{label}</span>;
+  }
+  return (
+    <Link
+      href={adminUserPath(solve.user.email)}
+      className="font-medium hover:text-primary hover:underline"
+    >
+      {label}
+    </Link>
+  );
+}
+
+function SolveChallengeTitle({ solve, isAdmin }) {
+  if (!isAdmin) {
+    return <span className="text-primary">{solve.challenge.title}</span>;
+  }
+  return (
+    <Link
+      href={`/challenges/${solve.challenge.id}`}
+      className="text-primary hover:underline"
+    >
+      {solve.challenge.title}
+    </Link>
+  );
+}
+
+function SolveCompetitionName({ solve, isAdmin }) {
+  const name = solve.challenge.competition.name;
+  if (!isAdmin || !solve.challenge.competition.slug) {
+    return <div>{name}</div>;
+  }
+  return (
+    <Link
+      href={`/competitions/${solve.challenge.competition.slug}`}
+      className="hover:text-foreground hover:underline"
+    >
+      {name}
+    </Link>
+  );
+}
+
+export function LiveSolveFeed({ initialSolves, competitionId, isAdmin = false }) {
   const [solves, setSolves] = useState(initialSolves);
 
   useEffect(() => {
@@ -33,16 +79,16 @@ export function LiveSolveFeed({ initialSolves, competitionId }) {
           key={solve.id}
           className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3"
         >
-          <div className="flex items-center gap-3">
-            <span className="font-medium">{solve.user.name || solve.user.email}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <SolveUserName solve={solve} isAdmin={isAdmin} />
             <span className="text-muted-foreground">solved</span>
-            <span className="text-primary">{solve.challenge.title}</span>
+            <SolveChallengeTitle solve={solve} isAdmin={isAdmin} />
             {solve.pointsAwarded > 0 && (
               <Badge variant="success">+{solve.pointsAwarded}</Badge>
             )}
           </div>
           <div className="text-right text-sm text-muted-foreground">
-            <div>{solve.challenge.competition.name}</div>
+            <SolveCompetitionName solve={solve} isAdmin={isAdmin} />
             <div>{timeAgoInAEST(solve.solvedAt)}</div>
           </div>
         </div>

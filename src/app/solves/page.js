@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { getVisibleCompetitions } from "@/lib/competitions";
 import { LiveSolveFeed } from "@/components/solves/live-solve-feed";
 import { SolvesFilter } from "@/components/solves/solves-filter";
@@ -7,6 +8,8 @@ export default async function SolvesPage({ searchParams }) {
   const params = await searchParams;
   const competitionId = params?.competition || null;
   const competitions = await getVisibleCompetitions();
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "ADMIN";
 
   const solves = await prisma.solve.findMany({
     where: {
@@ -25,7 +28,7 @@ export default async function SolvesPage({ searchParams }) {
           id: true,
           title: true,
           points: true,
-          competition: { select: { id: true, name: true } },
+          competition: { select: { id: true, name: true, slug: true } },
         },
       },
     },
@@ -42,7 +45,11 @@ export default async function SolvesPage({ searchParams }) {
         </div>
         <SolvesFilter competitions={competitions} selectedId={competitionId} />
       </div>
-      <LiveSolveFeed initialSolves={solves} competitionId={competitionId} />
+      <LiveSolveFeed
+        initialSolves={solves}
+        competitionId={competitionId}
+        isAdmin={isAdmin}
+      />
     </div>
   );
 }

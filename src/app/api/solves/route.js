@@ -23,7 +23,7 @@ export async function GET(request) {
           id: true,
           title: true,
           points: true,
-          competition: { select: { id: true, name: true } },
+          competition: { select: { id: true, name: true, slug: true } },
         },
       },
     },

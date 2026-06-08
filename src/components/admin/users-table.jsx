@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Table,
@@ -12,8 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { adminUserPath } from "@/lib/admin-user-paths";
+import { cn } from "@/lib/utils";
 
 export function AdminUsersTable({ users: initialUsers }) {
+  const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
   const [loading, setLoading] = useState(null);
 
@@ -70,8 +74,14 @@ export function AdminUsersTable({ users: initialUsers }) {
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell>{user.name || "—"}</TableCell>
+            <TableRow
+              key={user.id}
+              className="cursor-pointer"
+              onClick={() => router.push(adminUserPath(user.email))}
+            >
+              <TableCell className={cn(user.disabled && "text-muted-foreground")}>
+                {user.name || "—"}
+              </TableCell>
               <TableCell className="font-mono text-sm">{user.email}</TableCell>
               <TableCell>{user.studentId || "—"}</TableCell>
               <TableCell>
@@ -83,14 +93,14 @@ export function AdminUsersTable({ users: initialUsers }) {
               <TableCell className="text-sm text-muted-foreground">
                 {user.createdAt}
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Switch
                   checked={user.disabled}
                   disabled={loading === user.id}
                   onCheckedChange={(checked) => toggleDisabled(user.id, checked)}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell onClick={(e) => e.stopPropagation()}>
                 <Button
                   size="sm"
                   variant="outline"
