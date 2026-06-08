@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { getVisibleCompetitions } from "@/lib/competitions";
 import { getCompetitionLeaderboard, getChallengeLeaderboard } from "@/lib/scoring";
 import { LeaderboardTabs } from "@/components/leaderboard/leaderboard-tabs";
@@ -7,6 +8,8 @@ export default async function LeaderboardPage({ searchParams }) {
   const params = await searchParams;
   const competitions = await getVisibleCompetitions();
   const competitionId = params?.competition || competitions[0]?.id || null;
+  const user = await getCurrentUser();
+  const isAdmin = user?.role === "ADMIN";
 
   let overall = [];
   let challenges = [];
@@ -34,6 +37,7 @@ export default async function LeaderboardPage({ searchParams }) {
         overall={overall}
         challenges={challenges}
         challengeLeaderboards={challengeLeaderboards}
+        isAdmin={isAdmin}
       />
     </div>
   );

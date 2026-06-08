@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { adminUserPath } from "@/lib/admin-user-paths";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -20,12 +22,28 @@ import {
 import { formatInAEST } from "@/lib/timezone";
 import { Badge } from "@/components/ui/badge";
 
+function LeaderboardPlayerName({ user, isAdmin }) {
+  const label = user.name || user.email;
+  if (!isAdmin || !user.email) {
+    return label;
+  }
+  return (
+    <Link
+      href={adminUserPath(user.email)}
+      className="hover:text-primary hover:underline"
+    >
+      {label}
+    </Link>
+  );
+}
+
 export function LeaderboardTabs({
   competitions,
   selectedCompetitionId,
   overall,
   challenges,
   challengeLeaderboards,
+  isAdmin = false,
 }) {
   const router = useRouter();
 
@@ -73,7 +91,9 @@ export function LeaderboardTabs({
                 {overall.map((entry, i) => (
                   <TableRow key={entry.user.id}>
                     <TableCell className="font-mono text-muted-foreground">{i + 1}</TableCell>
-                    <TableCell>{entry.user.name || entry.user.email}</TableCell>
+                    <TableCell>
+                      <LeaderboardPlayerName user={entry.user} isAdmin={isAdmin} />
+                    </TableCell>
                     <TableCell className="text-right font-mono text-primary">
                       {entry.score}
                     </TableCell>
@@ -118,7 +138,9 @@ export function LeaderboardTabs({
                               <TableCell className="font-mono text-muted-foreground">
                                 {i + 1}
                               </TableCell>
-                              <TableCell>{solve.user.name || solve.user.email}</TableCell>
+                              <TableCell>
+                                <LeaderboardPlayerName user={solve.user} isAdmin={isAdmin} />
+                              </TableCell>
                               <TableCell className="text-muted-foreground">
                                 {formatInAEST(solve.solvedAt)}
                               </TableCell>
