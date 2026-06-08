@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePageVisible } from "@/hooks/use-page-visible";
 
 function parseSseEvent(event) {
   try {
@@ -11,13 +12,14 @@ function parseSseEvent(event) {
 }
 
 export function useSupportTicketStream(ticketId, { onMessage, onTicket, onReconnect }) {
+  const pageVisible = usePageVisible();
   const handlersRef = useRef({ onMessage, onTicket, onReconnect });
   handlersRef.current = { onMessage, onTicket, onReconnect };
 
   const hadConnectionRef = useRef(false);
 
   useEffect(() => {
-    if (!ticketId) return undefined;
+    if (!ticketId || !pageVisible) return undefined;
 
     const source = new EventSource(`/api/support/tickets/${ticketId}/stream`);
 
@@ -45,16 +47,19 @@ export function useSupportTicketStream(ticketId, { onMessage, onTicket, onReconn
     return () => {
       source.close();
     };
-  }, [ticketId]);
+  }, [ticketId, pageVisible]);
 }
 
 export function useSupportInboxStream({ onTicket, onReconnect }) {
+  const pageVisible = usePageVisible();
   const handlersRef = useRef({ onTicket, onReconnect });
   handlersRef.current = { onTicket, onReconnect };
 
   const hadConnectionRef = useRef(false);
 
   useEffect(() => {
+    if (!pageVisible) return undefined;
+
     const source = new EventSource("/api/support/inbox/stream");
 
     source.onmessage = (event) => {
@@ -77,5 +82,5 @@ export function useSupportInboxStream({ onTicket, onReconnect }) {
     return () => {
       source.close();
     };
-  }, []);
+  }, [pageVisible]);
 }

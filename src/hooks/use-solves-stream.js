@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePageVisible } from "@/hooks/use-page-visible";
 
 function parseSseEvent(event) {
   try {
@@ -11,12 +12,15 @@ function parseSseEvent(event) {
 }
 
 export function useSolvesStream({ competitionId, onSolve, onRefresh, onReconnect }) {
+  const pageVisible = usePageVisible();
   const handlersRef = useRef({ onSolve, onRefresh, onReconnect });
   handlersRef.current = { onSolve, onRefresh, onReconnect };
 
   const hadConnectionRef = useRef(false);
 
   useEffect(() => {
+    if (!pageVisible) return undefined;
+
     const params = new URLSearchParams();
     if (competitionId) params.set("competitionId", competitionId);
     const query = params.toString();
@@ -46,5 +50,5 @@ export function useSolvesStream({ competitionId, onSolve, onRefresh, onReconnect
     return () => {
       source.close();
     };
-  }, [competitionId]);
+  }, [competitionId, pageVisible]);
 }
