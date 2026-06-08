@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Shield, Menu } from "lucide-react";
+import { ExternalLink, Lock, Menu } from "lucide-react";
 import { NavbarPoints } from "@/components/layout/navbar-points";
 
 const navLinks = [
@@ -19,7 +19,7 @@ export async function Navbar() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <Shield className="h-5 w-5 text-primary" />
+            <Lock className="h-5 w-5 text-primary" />
             <span>DUCA CTF</span>
           </Link>
           <nav className="hidden items-center gap-4 md:flex">
