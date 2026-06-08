@@ -3,11 +3,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isChallengeAvailable } from "@/lib/competitions";
+import { isChallengeUpcoming } from "@/lib/challenges";
+import { cn } from "@/lib/utils";
 import { userHasSolvedChallenge, userSolvedFlags } from "@/lib/scoring";
 import { ContentRenderer } from "@/components/challenge/content-renderer";
 import { FlagSubmit } from "@/components/challenge/flag-submit";
 import { Countdown } from "@/components/challenge/countdown";
 import { Badge } from "@/components/ui/badge";
+import { Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInAEST } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
@@ -45,8 +48,7 @@ export default async function ChallengePage({ params }) {
     });
   }
 
-  const now = new Date();
-  const isUpcoming = challenge.startAt > now;
+  const isUpcoming = isChallengeUpcoming(challenge);
   const available = isChallengeAvailable(challenge, challenge.competition);
   const solved = user ? await userHasSolvedChallenge(user.id, id) : false;
   const solvedFlagIds = user ? await userSolvedFlags(user.id, id) : new Set();
@@ -68,7 +70,11 @@ export default async function ChallengePage({ params }) {
       </div>
 
       {isUpcoming && (
-        <div className="mb-6">
+        <div className="mb-6 rounded-lg border border-border bg-muted/30 p-4 opacity-80">
+          <div className="mb-2 flex items-center gap-2 text-muted-foreground">
+            <Lock className="h-4 w-4" />
+            <span className="text-sm font-medium">Challenge locked</span>
+          </div>
           <Countdown targetDate={challenge.startAt} label="Challenge unlocks in" />
           <p className="mt-2 text-sm text-muted-foreground">
             Available from {formatInAEST(challenge.startAt)}
@@ -76,7 +82,7 @@ export default async function ChallengePage({ params }) {
         </div>
       )}
 
-      <Card className="mb-6">
+      <Card className={cn("mb-6", isUpcoming && "opacity-60")}>
         <CardHeader>
           <CardTitle className="text-base">Description</CardTitle>
         </CardHeader>

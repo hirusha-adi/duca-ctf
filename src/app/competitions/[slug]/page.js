@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Lock } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
 import { isChallengeAvailable } from "@/lib/competitions";
+import { isChallengeUpcoming } from "@/lib/challenges";
+import { cn } from "@/lib/utils";
 
 export default async function CompetitionPage({ params }) {
   const { slug } = await params;
@@ -39,8 +41,6 @@ export default async function CompetitionPage({ params }) {
     return acc;
   }, {});
 
-  const now = new Date();
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
@@ -70,19 +70,35 @@ export default async function CompetitionPage({ params }) {
                     {challenges.map((ch) => {
                       const solved = solvedMap[ch.id];
                       const available = isChallengeAvailable(ch, competition);
-                      const upcoming = new Date(ch.startAt) > now;
+                      const upcoming = isChallengeUpcoming(ch);
 
                       return (
-                        <tr key={ch.id} className="border-b border-border hover:bg-muted/30">
+                        <tr
+                          key={ch.id}
+                          className={cn(
+                            "border-b border-border",
+                            upcoming
+                              ? "bg-muted/30 opacity-50"
+                              : "hover:bg-muted/30"
+                          )}
+                        >
                           <td className="px-4 py-3">
                             <Link
                               href={`/challenges/${ch.id}`}
-                              className="font-medium hover:text-primary"
+                              className={cn(
+                                "font-medium",
+                                upcoming ? "text-muted-foreground" : "hover:text-primary"
+                              )}
                             >
-                              {ch.title}
+                              <span className="flex items-center gap-2">
+                                {upcoming && <Lock className="h-4 w-4 shrink-0" />}
+                                {ch.title}
+                              </span>
                             </Link>
                           </td>
-                          <td className="px-4 py-3">{ch.points}</td>
+                          <td className={cn("px-4 py-3", upcoming && "text-muted-foreground")}>
+                            {ch.points}
+                          </td>
                           <td className="px-4 py-3">
                             {solved ? (
                               <span className="flex items-center gap-1 text-primary">
@@ -90,7 +106,7 @@ export default async function CompetitionPage({ params }) {
                               </span>
                             ) : upcoming ? (
                               <span className="flex items-center gap-1 text-muted-foreground">
-                                <Lock className="h-4 w-4" /> {formatInAEST(ch.startAt)}
+                                <Lock className="h-4 w-4" /> Locked · {formatInAEST(ch.startAt)}
                               </span>
                             ) : available ? (
                               <Badge variant="outline">Open</Badge>

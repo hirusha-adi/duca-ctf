@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Countdown } from "./countdown";
 import { CheckCircle2, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function ChallengeCard({ challenge, solved = false, showCountdown = true }) {
   const now = new Date();
@@ -10,11 +11,23 @@ export function ChallengeCard({ challenge, solved = false, showCountdown = true 
   const isLocked = isUpcoming;
 
   return (
-    <Card className="transition-colors hover:border-primary/50">
+    <Card
+      className={cn(
+        "transition-colors",
+        isLocked
+          ? "border-border bg-muted/30 opacity-60"
+          : "hover:border-primary/50"
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
-            <Link href={`/challenges/${challenge.id}`} className="hover:text-primary">
+            <Link
+              href={`/challenges/${challenge.id}`}
+              className={cn(
+                isLocked ? "text-muted-foreground" : "hover:text-primary"
+              )}
+            >
               {challenge.title}
             </Link>
           </CardTitle>

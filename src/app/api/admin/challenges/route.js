@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { hashFlag } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { parseDatetimeLocalToUTC } from "@/lib/timezone";
+import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 
@@ -24,12 +24,26 @@ export async function POST(request) {
       description,
       descriptionFormat,
       startAt,
+      useCustomStart,
       hidden,
       flags,
     } = body;
 
-    if (!title || !competitionId || !categoryId || !startAt) {
+    if (!title || !competitionId || !categoryId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    let resolvedStartAt;
+    try {
+      ({ startAt: resolvedStartAt } = await resolveChallengeStartAt(competitionId, {
+        useCustomStart: !!useCustomStart,
+        startAt,
+      }));
+    } catch (err) {
+      return NextResponse.json(
+        { error: challengeStartErrorMessage(err.message) },
+        { status: 400 }
+      );
     }
 
     const validFlags = (flags || []).filter((f) => f.value?.trim());
@@ -49,7 +63,7 @@ export async function POST(request) {
         points: Number(points) || 100,
         description: content || "",
         descriptionFormat: descriptionFormat || "MARKDOWN",
-        startAt: parseDatetimeLocalToUTC(startAt),
+        startAt: resolvedStartAt,
         hidden: hidden ?? false,
         flags: {
           create: await Promise.all(

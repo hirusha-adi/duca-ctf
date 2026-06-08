@@ -7,7 +7,7 @@ export default async function AdminChallengesPage() {
     prisma.challenge.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        competition: { select: { id: true, name: true } },
+        competition: { select: { id: true, name: true, startAt: true, endAt: true } },
         category: { select: { id: true, name: true } },
         flags: { orderBy: { order: "asc" } },
         _count: { select: { solves: true } },
@@ -17,11 +17,20 @@ export default async function AdminChallengesPage() {
     prisma.category.findMany({ orderBy: { name: "asc" } }),
   ]);
 
+  const serializedCompetitions = competitions.map((c) => ({
+    ...c,
+    startAtLocal: toDatetimeLocalInAEST(c.startAt),
+    endAtLocal: toDatetimeLocalInAEST(c.endAt),
+    startAtFormatted: formatInAEST(c.startAt),
+    endAtFormatted: formatInAEST(c.endAt),
+  }));
+
   const serialized = challenges.map((ch) => ({
     ...ch,
     startAtLocal: toDatetimeLocalInAEST(ch.startAt),
     startAtFormatted: formatInAEST(ch.startAt),
     flagCount: ch.flags.length,
+    competitionStartAt: ch.competition.startAt,
   }));
 
   return (
@@ -29,7 +38,7 @@ export default async function AdminChallengesPage() {
       <h1 className="mb-6 text-2xl font-bold">Challenges</h1>
       <AdminChallengesManager
         challenges={serialized}
-        competitions={competitions}
+        competitions={serializedCompetitions}
         categories={categories}
       />
     </div>

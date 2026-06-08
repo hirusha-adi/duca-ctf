@@ -33,9 +33,14 @@ const emptyForm = {
   description: "",
   descriptionFormat: "MARKDOWN",
   startAt: "",
+  useCustomStart: false,
   hidden: false,
   flags: [{ value: "", label: "" }],
 };
+
+function getCompetition(competitions, id) {
+  return competitions.find((c) => c.id === id);
+}
 
 export function AdminChallengesManager({ challenges: initial, competitions, categories }) {
   const [challenges] = useState(initial);
@@ -45,6 +50,27 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
   const [error, setError] = useState(null);
   const [newCategory, setNewCategory] = useState("");
   const [cats, setCats] = useState(categories);
+
+  const selectedCompetition = getCompetition(competitions, form.competitionId);
+
+  function handleCompetitionChange(competitionId) {
+    const comp = getCompetition(competitions, competitionId);
+    setForm((prev) => ({
+      ...prev,
+      competitionId,
+      startAt: comp?.startAtLocal || "",
+      useCustomStart: false,
+    }));
+  }
+
+  function handleCustomStartToggle(useCustomStart) {
+    const comp = selectedCompetition;
+    setForm((prev) => ({
+      ...prev,
+      useCustomStart,
+      startAt: useCustomStart ? prev.startAt || comp?.startAtLocal || "" : comp?.startAtLocal || "",
+    }));
+  }
 
   function addFlag() {
     setForm({
@@ -86,6 +112,12 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
     setLoading(true);
     setError(null);
 
+    if (!form.competitionId) {
+      setError("Please select a competition");
+      setLoading(false);
+      return;
+    }
+
     try {
       const url = editing
         ? `/api/admin/challenges/${editing}`
@@ -124,6 +156,11 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
   }
 
   function startEdit(ch) {
+    const comp = getCompetition(competitions, ch.competitionId);
+    const useCustomStart = comp
+      ? new Date(ch.startAt).getTime() !== new Date(comp.startAt).getTime()
+      : false;
+
     setEditing(ch.id);
     setForm({
       title: ch.title,
@@ -134,6 +171,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       description: ch.description,
       descriptionFormat: ch.descriptionFormat,
       startAt: ch.startAtLocal,
+      useCustomStart,
       hidden: ch.hidden,
       flags: ch.flags.map((f) => ({ value: "", label: f.label, id: f.id })),
     });
@@ -167,10 +205,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
               </div>
               <div className="space-y-2">
                 <Label>Competition</Label>
-                <Select
-                  value={form.competitionId}
-                  onValueChange={(v) => setForm({ ...form, competitionId: v })}
-                >
+                <Select value={form.competitionId} onValueChange={handleCompetitionChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select competition" />
                   </SelectTrigger>
@@ -220,14 +255,39 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Start (AEST/AEDT)</Label>
-                <Input
-                  type="datetime-local"
-                  value={form.startAt}
-                  onChange={(e) => setForm({ ...form, startAt: e.target.value })}
-                  required
-                />
+              <div className="space-y-2 sm:col-span-2">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.useCustomStart}
+                    onCheckedChange={handleCustomStartToggle}
+                    disabled={!form.competitionId}
+                  />
+                  <Label>Custom start time (optional)</Label>
+                </div>
+                {form.competitionId && !form.useCustomStart && selectedCompetition && (
+                  <p className="text-sm text-muted-foreground">
+                    Starts with the competition on {selectedCompetition.startAtFormatted}
+                  </p>
+                )}
+                {form.useCustomStart && (
+                  <div className="space-y-1">
+                    <Label>Custom start (AEST/AEDT)</Label>
+                    <Input
+                      type="datetime-local"
+                      value={form.startAt}
+                      max={selectedCompetition?.endAtLocal || undefined}
+                      min={selectedCompetition?.startAtLocal || undefined}
+                      onChange={(e) => setForm({ ...form, startAt: e.target.value })}
+                      required
+                    />
+                    {selectedCompetition && (
+                      <p className="text-xs text-muted-foreground">
+                        Must be between {selectedCompetition.startAtFormatted} and{" "}
+                        {selectedCompetition.endAtFormatted}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -282,7 +342,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex gap-2">
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading || !form.competitionId}>
                 {loading ? "Saving..." : editing ? "Update" : "Create"}
               </Button>
               {editing && (
@@ -308,6 +368,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
             <TableHead>Title</TableHead>
             <TableHead>Competition</TableHead>
             <TableHead>Category</TableHead>
+            <TableHead>Starts</TableHead>
             <TableHead>Points</TableHead>
             <TableHead>Flags</TableHead>
             <TableHead>Solves</TableHead>
@@ -322,6 +383,9 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
               <TableCell>{ch.competition.name}</TableCell>
               <TableCell>
                 <Badge variant="secondary">{ch.category.name}</Badge>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">
+                {ch.startAtFormatted}
               </TableCell>
               <TableCell>{ch.points}</TableCell>
               <TableCell>{ch.flagCount}</TableCell>

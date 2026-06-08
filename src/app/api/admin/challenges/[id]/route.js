@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { hashFlag } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { parseDatetimeLocalToUTC } from "@/lib/timezone";
+import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 
@@ -15,6 +15,15 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const ip = getClientIp(request);
     const userAgent = getUserAgent(request);
+
+    const existing = await prisma.challenge.findUnique({
+      where: { id },
+      select: { competitionId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
+    }
 
     const data = {};
     if (body.title) data.title = body.title;
@@ -30,8 +39,26 @@ export async function PATCH(request, { params }) {
           : body.description;
     }
     if (body.descriptionFormat) data.descriptionFormat = body.descriptionFormat;
-    if (body.startAt) data.startAt = parseDatetimeLocalToUTC(body.startAt);
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;
+
+    const competitionId = body.competitionId || existing.competitionId;
+    if (
+      body.competitionId !== undefined ||
+      body.startAt !== undefined ||
+      body.useCustomStart !== undefined
+    ) {
+      try {
+        ({ startAt: data.startAt } = await resolveChallengeStartAt(competitionId, {
+          useCustomStart: !!body.useCustomStart,
+          startAt: body.startAt,
+        }));
+      } catch (err) {
+        return NextResponse.json(
+          { error: challengeStartErrorMessage(err.message) },
+          { status: 400 }
+        );
+      }
+    }
 
     const challenge = await prisma.challenge.update({
       where: { id },
