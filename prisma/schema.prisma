@@ -98,6 +98,7 @@ model Flag {
   id          String   @id @default(cuid())
   challengeId String
   flagHash    String
+  value       String   @default("")
   label       String   @default("")
   order       Int      @default(0)
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)

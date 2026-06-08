@@ -9,7 +9,10 @@ export default async function AdminChallengesPage() {
       include: {
         competition: { select: { id: true, name: true, startAt: true, endAt: true } },
         category: { select: { id: true, name: true } },
-        flags: { orderBy: { order: "asc" } },
+        flags: {
+          orderBy: { order: "asc" },
+          select: { id: true, label: true, order: true, value: true },
+        },
         _count: { select: { solves: true } },
       },
     }),

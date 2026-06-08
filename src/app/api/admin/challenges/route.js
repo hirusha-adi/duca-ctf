@@ -67,11 +67,15 @@ export async function POST(request) {
         hidden: hidden ?? false,
         flags: {
           create: await Promise.all(
-            validFlags.map(async (f, i) => ({
-              flagHash: await hashFlag(f.value),
-              label: f.label || "",
-              order: i,
-            }))
+            validFlags.map(async (f, i) => {
+              const normalized = f.value.trim();
+              return {
+                value: normalized,
+                flagHash: await hashFlag(normalized),
+                label: f.label || "",
+                order: i,
+              };
+            })
           ),
         },
       },

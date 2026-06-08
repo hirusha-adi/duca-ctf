@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
-import { hashFlag } from "@/lib/flags";
+import { syncChallengeFlags, flagSyncErrorMessage } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
@@ -66,19 +66,13 @@ export async function PATCH(request, { params }) {
     });
 
     if (body.flags) {
-      const newFlags = body.flags.filter((f) => f.value?.trim());
-      if (newFlags.length > 0) {
-        await prisma.flag.deleteMany({ where: { challengeId: id } });
-        await prisma.flag.createMany({
-          data: await Promise.all(
-            newFlags.map(async (f, i) => ({
-              challengeId: id,
-              flagHash: await hashFlag(f.value),
-              label: f.label || "",
-              order: i,
-            }))
-          ),
-        });
+      try {
+        await syncChallengeFlags(id, body.flags);
+      } catch (err) {
+        return NextResponse.json(
+          { error: flagSyncErrorMessage(err.message) },
+          { status: 400 }
+        );
       }
     }
 

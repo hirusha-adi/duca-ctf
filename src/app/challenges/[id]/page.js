@@ -26,7 +26,10 @@ export default async function ChallengePage({ params }) {
     include: {
       category: true,
       competition: true,
-      flags: { orderBy: { order: "asc" } },
+      flags: {
+        orderBy: { order: "asc" },
+        select: { id: true, label: true, order: true },
+      },
       _count: { select: { solves: { where: { pointsAwarded: { gt: 0 } } } } },
     },
   });

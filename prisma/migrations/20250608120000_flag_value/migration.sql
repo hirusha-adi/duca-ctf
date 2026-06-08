@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Flag" ADD COLUMN IF NOT EXISTS "value" TEXT NOT NULL DEFAULT '';

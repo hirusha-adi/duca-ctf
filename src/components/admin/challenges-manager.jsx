@@ -35,7 +35,7 @@ const emptyForm = {
   startAt: "",
   useCustomStart: false,
   hidden: false,
-  flags: [{ value: "", label: "" }],
+  flags: [{ value: "", label: "", id: null }],
 };
 
 function getCompetition(competitions, id) {
@@ -75,7 +75,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
   function addFlag() {
     setForm({
       ...form,
-      flags: [...form.flags, { value: "", label: "" }],
+      flags: [...form.flags, { value: "", label: "", id: null }],
     });
   }
 
@@ -118,6 +118,18 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       return;
     }
 
+    if (form.flags.length === 0) {
+      setError("At least one flag is required");
+      setLoading(false);
+      return;
+    }
+    if (form.flags.some((f) => !f.value?.trim())) {
+      setError("Every flag must have a value");
+      setLoading(false);
+      return;
+    }
+    const flagsPayload = form.flags;
+
     try {
       const url = editing
         ? `/api/admin/challenges/${editing}`
@@ -125,7 +137,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       const res = await fetch(url, {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, flags: flagsPayload }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -173,7 +185,11 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       startAt: ch.startAtLocal,
       useCustomStart,
       hidden: ch.hidden,
-      flags: ch.flags.map((f) => ({ value: "", label: f.label, id: f.id })),
+      flags: ch.flags.map((f) => ({
+        id: f.id,
+        label: f.label || "",
+        value: f.value || "",
+      })),
     });
   }
 
@@ -308,25 +324,49 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
                   Add Flag
                 </Button>
               </div>
+              {form.flags.length === 0 && (
+                <p className="text-sm text-muted-foreground">No flags yet. Add at least one.</p>
+              )}
               {form.flags.map((flag, i) => (
-                <div key={i} className="flex gap-2">
-                  <Input
-                    placeholder={editing ? "Leave blank to keep existing" : "DUCA{...}"}
-                    value={flag.value}
-                    onChange={(e) => updateFlag(i, "value", e.target.value)}
-                    className="font-mono"
-                    required={!editing && i === 0}
-                  />
-                  <Input
-                    placeholder="Label (optional)"
-                    value={flag.label}
-                    onChange={(e) => updateFlag(i, "label", e.target.value)}
-                  />
-                  {form.flags.length > 1 && (
-                    <Button type="button" variant="ghost" onClick={() => removeFlag(i)}>
-                      ×
+                <div
+                  key={flag.id || `new-${i}`}
+                  className="space-y-2 rounded-md border border-border bg-secondary/30 p-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Flag {i + 1}
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-destructive hover:text-destructive"
+                      onClick={() => removeFlag(i)}
+                      disabled={form.flags.length === 1}
+                    >
+                      Remove
                     </Button>
-                  )}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Flag value</Label>
+                      <Input
+                        placeholder="DUCA{...}"
+                        value={flag.value}
+                        onChange={(e) => updateFlag(i, "value", e.target.value)}
+                        className="font-mono text-white"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Label (optional)</Label>
+                      <Input
+                        placeholder="e.g. Stage 1"
+                        value={flag.label}
+                        onChange={(e) => updateFlag(i, "label", e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

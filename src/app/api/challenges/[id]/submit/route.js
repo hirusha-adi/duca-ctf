@@ -43,7 +43,7 @@ export async function POST(request, { params }) {
       where: { id },
       include: {
         competition: true,
-        flags: true,
+        flags: { select: { id: true, flagHash: true } },
       },
     });
 
