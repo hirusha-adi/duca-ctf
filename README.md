@@ -117,26 +117,6 @@ npm run make-admin -- user@example.com
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run make-admin` | Promote a user to admin by email |
 
-### Dev troubleshooting
-
-**Port 5432 already in use**
-
-```bash
-sudo systemctl stop postgresql   # if a system Postgres is running
-```
-
-**Docker permission denied**
-
-Either use `sudo` with Docker commands (as shown in this guide), or add your user to the `docker` group:
-
-```bash
-sudo usermod -aG docker $USER
-# log out and back in, then docker works without sudo:
-docker compose up -d
-```
-
----
-
 ## Deployment guide
 
 Production runs as three Docker containers behind Caddy. PostgreSQL and Redis communicate with the web app on a private bridge network (`hirusha-duca-ctf-net`). Only the web container also joins the external `intranet_1` network so Caddy can reverse-proxy to it.
