@@ -21,6 +21,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+async function unsolveChallenge(userId, challengeId) {
+  const res = await fetch("/api/admin/solves/unsolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, challengeId }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Failed to unsolve challenge");
+  }
+  return data;
+}
+
 export function AdminSubmissionsTable({
   submissions,
   categories,
@@ -31,6 +44,8 @@ export function AdminSubmissionsTable({
   const [categoryId, setCategoryId] = useState(filters.category || "all");
   const [competitionId, setCompetitionId] = useState(filters.competition || "all");
   const [result, setResult] = useState(filters.result || "all");
+  const [unsolvingId, setUnsolvingId] = useState(null);
+  const [error, setError] = useState(null);
 
   function applyFilters() {
     const params = new URLSearchParams();
@@ -45,6 +60,28 @@ export function AdminSubmissionsTable({
     setCompetitionId("all");
     setResult("all");
     router.push("/admin/submissions");
+  }
+
+  async function handleUnsolve(sub) {
+    if (
+      !confirm(
+        `Mark "${sub.challengeTitle}" as unsolved for ${sub.userName}? This removes all flag solves and points for that challenge.`
+      )
+    ) {
+      return;
+    }
+
+    setUnsolvingId(sub.id);
+    setError(null);
+
+    try {
+      await unsolveChallenge(sub.userId, sub.challengeId);
+      router.refresh();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUnsolvingId(null);
+    }
   }
 
   return (
@@ -92,6 +129,7 @@ export function AdminSubmissionsTable({
               <SelectItem value="all">All results</SelectItem>
               <SelectItem value="correct">Correct</SelectItem>
               <SelectItem value="incorrect">Incorrect</SelectItem>
+              <SelectItem value="reverted">Reverted</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -101,10 +139,13 @@ export function AdminSubmissionsTable({
         </Button>
       </div>
 
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
       <div className="overflow-hidden rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[100px]">Actions</TableHead>
               <TableHead>Time</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Challenge</TableHead>
@@ -118,22 +159,33 @@ export function AdminSubmissionsTable({
           <TableBody>
             {submissions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   No submissions found
                 </TableCell>
               </TableRow>
             ) : (
               submissions.map((sub) => (
                 <TableRow key={sub.id}>
+                  <TableCell>
+                    {sub.canUnsolve ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={unsolvingId === sub.id}
+                        onClick={() => handleUnsolve(sub)}
+                      >
+                        {unsolvingId === sub.id ? "..." : "Unsolve"}
+                      </Button>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {sub.submittedAtFormatted}
                   </TableCell>
-                  <TableCell className="text-sm">
-                    {sub.userName}
-                  </TableCell>
-                  <TableCell className="text-sm font-medium">
-                    {sub.challengeTitle}
-                  </TableCell>
+                  <TableCell className="text-sm">{sub.userName}</TableCell>
+                  <TableCell className="text-sm font-medium">{sub.challengeTitle}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{sub.categoryName}</Badge>
                   </TableCell>
@@ -141,19 +193,30 @@ export function AdminSubmissionsTable({
                     {sub.competitionName}
                   </TableCell>
                   <TableCell>
-                    {sub.correct ? (
+                    {sub.status === "correct" && (
                       <Badge variant="success">Correct</Badge>
-                    ) : (
+                    )}
+                    {sub.status === "incorrect" && (
                       <Badge variant="outline" className="border-destructive/40 text-destructive">
                         Incorrect
                       </Badge>
                     )}
+                    {sub.status === "reverted" && (
+                      <div className="space-y-1">
+                        <Badge variant="warning">Reverted</Badge>
+                        {sub.revertedBy && (
+                          <p className="text-xs text-muted-foreground">by {sub.revertedBy}</p>
+                        )}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {sub.correct && sub.pointsAwarded > 0 ? (
+                    {sub.status === "correct" && sub.pointsAwarded > 0 ? (
                       <span className="text-primary">+{sub.pointsAwarded}</span>
-                    ) : sub.correct ? (
+                    ) : sub.status === "correct" ? (
                       <span className="text-muted-foreground">0</span>
+                    ) : sub.status === "reverted" && sub.pointsAwarded > 0 ? (
+                      <span className="text-amber-400">−{sub.pointsAwarded}</span>
                     ) : (
                       "—"
                     )}

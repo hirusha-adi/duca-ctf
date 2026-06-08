@@ -1,12 +1,52 @@
 import { prisma } from "@/lib/db";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { AdminSubmissionsTable } from "@/components/admin/submissions-table";
+import { UnsolveChallengeForm } from "@/components/admin/unsolve-challenge-form";
 import { formatInAEST } from "@/lib/timezone";
 
 const SUBMIT_ACTIONS = [
   TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT,
   TELEMETRY_ACTIONS.FLAG_SUBMIT_INCORRECT,
+  TELEMETRY_ACTIONS.FLAG_SUBMIT_REVERTED,
 ];
+
+function buildSubmissionRows(logs, challengeMap, activeSolveSet) {
+  return logs.map((log) => {
+    const meta = log.metadata || {};
+    const challenge = challengeMap[meta.challengeId];
+    const status =
+      log.action === TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT
+        ? "correct"
+        : log.action === TELEMETRY_ACTIONS.FLAG_SUBMIT_REVERTED
+          ? "reverted"
+          : "incorrect";
+
+    const targetUserId = log.userId || meta.targetUserId;
+    const solveKey =
+      targetUserId && meta.challengeId ? `${targetUserId}:${meta.challengeId}` : null;
+
+    return {
+      id: log.id,
+      submittedAtFormatted: formatInAEST(log.createdAt),
+      userId: targetUserId,
+      challengeId: meta.challengeId,
+      userName:
+        log.user?.name ||
+        log.user?.email ||
+        meta.targetUserName ||
+        meta.targetUserEmail ||
+        "—",
+      challengeTitle: challenge?.title || meta.challengeTitle || meta.challengeId || "Unknown",
+      categoryName: challenge?.category?.name || meta.categoryName || "—",
+      competitionName: challenge?.competition?.name || meta.competitionName || "—",
+      status,
+      pointsAwarded: meta.pointsAwarded ?? meta.pointsRemoved ?? 0,
+      ip: log.ip,
+      revertedBy: meta.revertedByAdminName || meta.revertedByAdminEmail || null,
+      canUnsolve: status === "correct" && solveKey ? activeSolveSet.has(solveKey) : false,
+    };
+  });
+}
 
 export default async function AdminSubmissionsPage({ searchParams }) {
   const params = await searchParams;
@@ -14,9 +54,13 @@ export default async function AdminSubmissionsPage({ searchParams }) {
   const competitionId = params?.competition || "";
   const result = params?.result || "all";
 
-  const [categories, competitions] = await Promise.all([
+  const [categories, competitions, users] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.competition.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.user.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, email: true },
+    }),
   ]);
 
   let challengeIds = null;
@@ -38,6 +82,7 @@ export default async function AdminSubmissionsPage({ searchParams }) {
           <p className="mb-6 text-sm text-muted-foreground">
             Flag submission attempts across all challenges. Filter by category or competition.
           </p>
+          <UnsolveChallengeForm users={users} />
           <AdminSubmissionsTable
             submissions={[]}
             categories={categories}
@@ -54,7 +99,9 @@ export default async function AdminSubmissionsPage({ searchParams }) {
       ? TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT
       : result === "incorrect"
         ? TELEMETRY_ACTIONS.FLAG_SUBMIT_INCORRECT
-        : { in: SUBMIT_ACTIONS };
+        : result === "reverted"
+          ? TELEMETRY_ACTIONS.FLAG_SUBMIT_REVERTED
+          : { in: SUBMIT_ACTIONS };
 
   const logWhere = { action: actionFilter };
   if (challengeIds) {
@@ -92,23 +139,31 @@ export default async function AdminSubmissionsPage({ searchParams }) {
 
   const challengeMap = Object.fromEntries(challenges.map((c) => [c.id, c]));
 
-  const submissions = logs.map((log) => {
-    const meta = log.metadata || {};
-    const challenge = challengeMap[meta.challengeId];
-    const correct = log.action === TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT;
+  const solvePairs = logs
+    .filter((log) => log.action === TELEMETRY_ACTIONS.FLAG_SUBMIT_CORRECT)
+    .map((log) => ({
+      userId: log.userId,
+      challengeId: log.metadata?.challengeId,
+    }))
+    .filter((p) => p.userId && p.challengeId);
 
-    return {
-      id: log.id,
-      submittedAtFormatted: formatInAEST(log.createdAt),
-      userName: log.user?.name || log.user?.email || "—",
-      challengeTitle: challenge?.title || meta.challengeId || "Unknown",
-      categoryName: challenge?.category?.name || "—",
-      competitionName: challenge?.competition?.name || "—",
-      correct,
-      pointsAwarded: meta.pointsAwarded ?? 0,
-      ip: log.ip,
-    };
-  });
+  const uniquePairs = [
+    ...new Map(solvePairs.map((p) => [`${p.userId}:${p.challengeId}`, p])).values(),
+  ];
+
+  const activeSolves =
+    uniquePairs.length > 0
+      ? await prisma.solve.findMany({
+          where: { OR: uniquePairs },
+          select: { userId: true, challengeId: true },
+        })
+      : [];
+
+  const activeSolveSet = new Set(
+    activeSolves.map((s) => `${s.userId}:${s.challengeId}`)
+  );
+
+  const submissions = buildSubmissionRows(logs, challengeMap, activeSolveSet);
 
   return (
     <div>
@@ -116,6 +171,7 @@ export default async function AdminSubmissionsPage({ searchParams }) {
       <p className="mb-6 text-sm text-muted-foreground">
         Flag submission attempts across all challenges. Filter by category or competition.
       </p>
+      <UnsolveChallengeForm users={users} />
       <AdminSubmissionsTable
         submissions={submissions}
         categories={categories}
