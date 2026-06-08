@@ -49,14 +49,6 @@ export function HomeHero({ user, activeCompetitions = [] }) {
         <Link href="/writeups" className="hover:text-foreground">
           Writeups
         </Link>
-        <a
-          href="https://duca.au"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-foreground"
-        >
-          duca.au
-        </a>
       </nav>
 
       {activeCompetitions.length > 0 && (
