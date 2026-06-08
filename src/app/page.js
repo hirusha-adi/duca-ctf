@@ -3,11 +3,33 @@ import { prisma } from "@/lib/db";
 import { getActiveCompetitions } from "@/lib/competitions";
 import { getCurrentUser } from "@/lib/auth";
 import { userHasSolvedChallenge } from "@/lib/scoring";
+import { HomeHero } from "@/components/home/home-hero";
 import { ChallengeCard } from "@/components/challenge/challenge-card";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInAEST } from "@/lib/timezone";
-import { ArrowRight, Trophy, Zap, BookOpen } from "lucide-react";
+
+const platformLinks = [
+  {
+    href: "/competitions",
+    label: "Competitions",
+    description: "Browse scheduled and past events.",
+  },
+  {
+    href: "/solves",
+    label: "Solves",
+    description: "Real-time feed of captured flags.",
+  },
+  {
+    href: "/leaderboard",
+    label: "Leaderboard",
+    description: "Overall and per-challenge rankings.",
+  },
+  {
+    href: "/writeups",
+    label: "Writeups",
+    description: "Solutions after competitions end.",
+  },
+];
+
 export default async function HomePage() {
   const user = await getCurrentUser();
   const activeCompetitions = await getActiveCompetitions();
@@ -39,86 +61,34 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <section className="mb-16 flex flex-col items-center px-4 pt-8 text-center md:pt-12">
-        <h1 className="text-5xl font-bold tracking-[0.12em] text-foreground sm:text-6xl lg:text-7xl">
-          DUCA
-          <span className="text-primary"> CTF</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
-          Deakin University Cybersecurity Association capture-the-flag platform.
-        </p>
+    <div className="mx-auto max-w-7xl px-4 pb-16">
+      <HomeHero user={user} activeCompetitions={activeCompetitions} />
 
-        {activeCompetitions.length > 0 ? (
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {activeCompetitions.map((comp) => (
-              <Button key={comp.id} asChild variant="outline">
-                <Link href={`/competitions/${comp.slug}`}>
-                  {comp.name}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+      <section className="border-t border-border pt-12">
+        <dl className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {platformLinks.map((item) => (
+            <div key={item.href}>
+              <dt>
+                <Link
+                  href={item.href}
+                  className="text-base font-semibold underline-offset-4 hover:text-primary hover:underline"
+                >
+                  {item.label}
                 </Link>
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-6 text-sm text-muted-foreground">
-            No active competitions right now. Check back soon.
-          </p>
-        )}
-      </section>
-
-      <section className="mb-12 grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Zap className="h-4 w-4 text-primary" />
-              Live Solves
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Watch solves happen in real time.</p>
-            <Button asChild variant="link" className="mt-2 h-auto p-0">
-              <Link href="/solves">View solves</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Trophy className="h-4 w-4 text-primary" />
-              Leaderboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">See who is leading the scoreboard.</p>
-            <Button asChild variant="link" className="mt-2 h-auto p-0">
-              <Link href="/leaderboard">View rankings</Link>
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BookOpen className="h-4 w-4 text-primary" />
-              Writeups
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">Challenge solutions after competitions end.</p>
-            <Button asChild variant="link" className="mt-2 h-auto p-0">
-              <Link href="/writeups">Browse writeups</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              </dt>
+              <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {item.description}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       {upcomingChallenges.length > 0 && (
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Upcoming Challenges</h2>
-            <span className="text-sm text-muted-foreground">
-              Times in AEST/AEDT
-            </span>
+        <section className="mt-16 border-t border-border pt-12">
+          <div className="mb-8 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+            <h2 className="text-lg font-semibold">Upcoming challenges</h2>
+            <p className="text-sm text-muted-foreground">Times in AEST/AEDT</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcomingChallenges.map((challenge) => (
