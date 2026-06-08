@@ -21,7 +21,7 @@ export async function POST(request) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    if (!checkOtpRateLimit(normalizedEmail)) {
+    if (!(await checkOtpRateLimit(normalizedEmail))) {
       return NextResponse.json(
         { error: "Too many requests. Please wait 15 minutes." },
         { status: 429 }

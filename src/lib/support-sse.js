@@ -2,7 +2,7 @@ export function createSseResponse(request, onSubscribe) {
   let cleanup = () => {};
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const encoder = new TextEncoder();
 
       const send = (event) => {
@@ -10,7 +10,7 @@ export function createSseResponse(request, onSubscribe) {
       };
 
       send({ type: "connected" });
-      cleanup = onSubscribe(send) || (() => {});
+      cleanup = (await onSubscribe(send)) || (() => {});
 
       const heartbeat = setInterval(() => {
         controller.enqueue(encoder.encode(": ping\n\n"));

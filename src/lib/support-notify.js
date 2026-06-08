@@ -29,7 +29,7 @@ export async function notifySupportMessage(ticketId, messageId) {
   if (!message) return;
 
   const serialized = serializeMessage(message);
-  publishTicketEvent(ticketId, { type: "message", message: serialized });
+  await publishTicketEvent(ticketId, { type: "message", message: serialized });
 
   const ticket = await prisma.supportTicket.findUnique({
     where: { id: ticketId },
@@ -38,8 +38,8 @@ export async function notifySupportMessage(ticketId, messageId) {
 
   if (ticket) {
     const summary = serializeTicketSummary(ticket);
-    publishTicketEvent(ticketId, { type: "ticket", ticket: summary });
-    publishInboxUpdates(summary, ticket.userId);
+    await publishTicketEvent(ticketId, { type: "ticket", ticket: summary });
+    await publishInboxUpdates(summary, ticket.userId);
   }
 }
 
@@ -52,6 +52,6 @@ export async function notifySupportTicketUpdate(ticketId) {
   if (!ticket) return;
 
   const summary = serializeTicketSummary(ticket);
-  publishTicketEvent(ticketId, { type: "ticket", ticket: summary });
-  publishInboxUpdates(summary, ticket.userId);
+  await publishTicketEvent(ticketId, { type: "ticket", ticket: summary });
+  await publishInboxUpdates(summary, ticket.userId);
 }

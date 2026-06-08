@@ -16,6 +16,7 @@ Custom capture-the-flag platform for the Deakin University Cybersecurity Associa
 
 - Node.js 18+
 - A running PostgreSQL instance (this project uses the existing Docker Postgres on `localhost:5432`)
+- Redis (optional but recommended for multi-instance deployments; included in `docker-compose.yml`)
 - SMTP credentials for sending login codes
 
 ## Development Setup
@@ -32,7 +33,7 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your `SESSION_SECRET` and SMTP credentials.
+Edit `.env.local` with your `SESSION_SECRET`, SMTP credentials, and optionally `REDIS_URL` (defaults to `redis://localhost:6379` when using Docker Compose).
 
 3. Ensure PostgreSQL is available
 
@@ -90,6 +91,7 @@ npm run make-admin -- user@example.com
 
 - **App**: Next.js 15 (JavaScript, App Router) — runs on the host via `npm run dev`
 - **Database**: Shared Docker PostgreSQL on `localhost:5432` (`duca_ctf` database)
+- **Redis**: Optional shared state for rate limits and support chat SSE pub/sub (`localhost:6379`). Without `REDIS_URL`, the app falls back to in-memory stores (fine for single-process dev).
 - **UI**: Tailwind CSS + shadcn/ui (dark theme)
 
 ## Troubleshooting

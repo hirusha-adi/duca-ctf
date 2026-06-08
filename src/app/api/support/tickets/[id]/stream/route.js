@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return createSseResponse(request, (send) => subscribeToTicket(id, send));
+    return createSseResponse(request, async (send) => subscribeToTicket(id, send));
   } catch (err) {
     if (err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

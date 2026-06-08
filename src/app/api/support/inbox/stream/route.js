@@ -13,11 +13,13 @@ export async function GET(request) {
   try {
     const user = await requireAuth();
 
-    return createSseResponse(request, (send) => {
-      const unsubscribers = [subscribeToInbox(inboxKeyForUser(user.id), send)];
+    return createSseResponse(request, async (send) => {
+      const unsubscribers = [
+        await subscribeToInbox(inboxKeyForUser(user.id), send),
+      ];
 
       if (user.role === "ADMIN") {
-        unsubscribers.push(subscribeToInbox(ADMIN_INBOX_KEY, send));
+        unsubscribers.push(await subscribeToInbox(ADMIN_INBOX_KEY, send));
       }
 
       return () => {

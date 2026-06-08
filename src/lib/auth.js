@@ -3,6 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
+import { checkRateLimit } from "./rate-limit";
 import { sessionOptions } from "./session";
 
 export { sessionOptions };
@@ -113,25 +114,8 @@ export async function verifyLoginCode(userId, code) {
   return { success: true };
 }
 
-const otpRateLimit = new Map();
-
-export function checkOtpRateLimit(email) {
-  const now = Date.now();
-  const key = email.toLowerCase();
-  const entry = otpRateLimit.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
-
-  if (now > entry.resetAt) {
-    entry.count = 0;
-    entry.resetAt = now + 15 * 60 * 1000;
-  }
-
-  if (entry.count >= 3) {
-    return false;
-  }
-
-  entry.count += 1;
-  otpRateLimit.set(key, entry);
-  return true;
+export async function checkOtpRateLimit(email) {
+  return checkRateLimit(`otp:${email.toLowerCase()}`, 3, 15 * 60 * 1000);
 }
 
 export async function setSessionUser(userId) {

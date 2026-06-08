@@ -1,6 +1,19 @@
+import { getRedis, getRedisSubscriber, isRedisEnabled } from "./redis";
+
 const globalForSupport = globalThis;
 
-function getBus() {
+const TICKET_CHANNEL_PREFIX = "duca:support:ticket:";
+const INBOX_CHANNEL_PREFIX = "duca:support:inbox:";
+
+function ticketChannel(ticketId) {
+  return `${TICKET_CHANNEL_PREFIX}${ticketId}`;
+}
+
+function inboxChannel(inboxKey) {
+  return `${INBOX_CHANNEL_PREFIX}${inboxKey}`;
+}
+
+function getMemoryBus() {
   if (!globalForSupport.supportEventBus) {
     globalForSupport.supportEventBus = {
       tickets: new Map(),
@@ -10,7 +23,7 @@ function getBus() {
   return globalForSupport.supportEventBus;
 }
 
-function subscribe(map, key, listener) {
+function subscribeMemory(map, key, listener) {
   if (!map.has(key)) map.set(key, new Set());
   map.get(key).add(listener);
   return () => {
@@ -18,7 +31,7 @@ function subscribe(map, key, listener) {
   };
 }
 
-function publish(map, key, payload) {
+function publishMemory(map, key, payload) {
   const listeners = map.get(key);
   if (!listeners) return;
   for (const listener of listeners) {
@@ -36,24 +49,68 @@ export function inboxKeyForUser(userId) {
   return `user:${userId}`;
 }
 
-export function subscribeToTicket(ticketId, listener) {
-  return subscribe(getBus().tickets, ticketId, listener);
+export async function subscribeToTicket(ticketId, listener) {
+  if (!isRedisEnabled()) {
+    return subscribeMemory(getMemoryBus().tickets, ticketId, listener);
+  }
+
+  const subscriber = await getRedisSubscriber();
+  const channel = ticketChannel(ticketId);
+
+  const handler = (message) => {
+    try {
+      listener(JSON.parse(message));
+    } catch (err) {
+      console.error("Support ticket event parse error:", err);
+    }
+  };
+
+  await subscriber.subscribe(channel, handler);
+  return () => subscriber.unsubscribe(channel, handler);
 }
 
-export function publishTicketEvent(ticketId, event) {
-  publish(getBus().tickets, ticketId, event);
+export async function publishTicketEvent(ticketId, event) {
+  if (!isRedisEnabled()) {
+    publishMemory(getMemoryBus().tickets, ticketId, event);
+    return;
+  }
+
+  const redis = await getRedis();
+  await redis.publish(ticketChannel(ticketId), JSON.stringify(event));
 }
 
-export function subscribeToInbox(inboxKey, listener) {
-  return subscribe(getBus().inboxes, inboxKey, listener);
+export async function subscribeToInbox(inboxKey, listener) {
+  if (!isRedisEnabled()) {
+    return subscribeMemory(getMemoryBus().inboxes, inboxKey, listener);
+  }
+
+  const subscriber = await getRedisSubscriber();
+  const channel = inboxChannel(inboxKey);
+
+  const handler = (message) => {
+    try {
+      listener(JSON.parse(message));
+    } catch (err) {
+      console.error("Support inbox event parse error:", err);
+    }
+  };
+
+  await subscriber.subscribe(channel, handler);
+  return () => subscriber.unsubscribe(channel, handler);
 }
 
-export function publishInboxEvent(inboxKey, event) {
-  publish(getBus().inboxes, inboxKey, event);
+export async function publishInboxEvent(inboxKey, event) {
+  if (!isRedisEnabled()) {
+    publishMemory(getMemoryBus().inboxes, inboxKey, event);
+    return;
+  }
+
+  const redis = await getRedis();
+  await redis.publish(inboxChannel(inboxKey), JSON.stringify(event));
 }
 
-export function publishInboxUpdates(ticketSummary, ticketUserId) {
+export async function publishInboxUpdates(ticketSummary, ticketUserId) {
   const event = { type: "ticket", ticket: ticketSummary };
-  publishInboxEvent(inboxKeyForUser(ticketUserId), event);
-  publishInboxEvent(ADMIN_INBOX_KEY, event);
+  await publishInboxEvent(inboxKeyForUser(ticketUserId), event);
+  await publishInboxEvent(ADMIN_INBOX_KEY, event);
 }

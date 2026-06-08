@@ -6,23 +6,7 @@ import { isChallengeAvailable } from "@/lib/competitions";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { getUserChallengeSubmissionCount } from "@/lib/submissions";
-
-const submitRateLimit = new Map();
-
-function checkSubmitRateLimit(userId) {
-  const now = Date.now();
-  const entry = submitRateLimit.get(userId) || { count: 0, resetAt: now + 60 * 1000 };
-
-  if (now > entry.resetAt) {
-    entry.count = 0;
-    entry.resetAt = now + 60 * 1000;
-  }
-
-  if (entry.count >= 10) return false;
-  entry.count += 1;
-  submitRateLimit.set(userId, entry);
-  return true;
-}
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request, { params }) {
   try {
@@ -36,7 +20,7 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Flag required" }, { status: 400 });
     }
 
-    if (!checkSubmitRateLimit(user.id)) {
+    if (!(await checkRateLimit(`submit:${user.id}`, 10, 60 * 1000))) {
       return NextResponse.json({ error: "Too many submissions. Slow down." }, { status: 429 });
     }
 
