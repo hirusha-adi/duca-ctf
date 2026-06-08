@@ -4,6 +4,8 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ![](./docs/images/home_image.png)
 
+[Click here](./docs/architechture.md) to explore the app design.
+
 ## Features
 
 - Passwordless email OTP authentication
