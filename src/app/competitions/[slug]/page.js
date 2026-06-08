@@ -6,7 +6,7 @@ import { userHasSolvedChallenge } from "@/lib/scoring";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Lock } from "lucide-react";
 import { formatInAEST } from "@/lib/timezone";
-import { isChallengeAvailable } from "@/lib/competitions";
+import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
 import { cn } from "@/lib/utils";
 
@@ -27,14 +27,16 @@ export default async function CompetitionPage({ params }) {
 
   if (!competition || competition.hidden) notFound();
 
+  const ended = isCompetitionEnded(competition);
+
   const solvedMap = {};
-  if (user) {
+  if (user && !ended) {
     for (const ch of competition.challenges) {
       solvedMap[ch.id] = await userHasSolvedChallenge(user.id, ch.id);
     }
   }
 
-  const byCategory = competition.challenges.reduce((acc, ch) => {
+  const byCategory = ended ? {} : competition.challenges.reduce((acc, ch) => {
     const cat = ch.category.name;
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(ch);
@@ -44,13 +46,25 @@ export default async function CompetitionPage({ params }) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">{competition.name}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold">{competition.name}</h1>
+          {ended && <Badge variant="secondary">Ended</Badge>}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {formatInAEST(competition.startAt)} — {formatInAEST(competition.endAt)}
         </p>
       </div>
 
-      {Object.keys(byCategory).length === 0 ? (
+      {ended ? (
+        <div className="rounded-lg border border-border bg-card p-6 text-center">
+          <p className="text-muted-foreground">
+            This competition has ended. Challenges are no longer available.
+          </p>
+          <Link href="/writeups" className="mt-3 inline-block text-sm text-primary hover:underline">
+            View writeups
+          </Link>
+        </div>
+      ) : Object.keys(byCategory).length === 0 ? (
         <p className="text-muted-foreground">No challenges published yet.</p>
       ) : (
         <div className="space-y-8">

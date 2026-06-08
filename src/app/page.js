@@ -18,7 +18,11 @@ export default async function HomePage() {
     where: {
       hidden: false,
       startAt: { gt: now },
-      competition: { hidden: false },
+      competition: {
+        hidden: false,
+        status: { not: "ENDED" },
+        endAt: { gte: now },
+      },
     },
     include: {
       category: true,

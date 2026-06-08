@@ -18,7 +18,6 @@ import {
 
 const emptyForm = {
   name: "",
-  slug: "",
   startAt: "",
   endAt: "",
   hidden: false,
@@ -83,7 +82,6 @@ export function AdminCompetitionsManager({ competitions: initial }) {
     setEditing(comp.id);
     setForm({
       name: comp.name,
-      slug: comp.slug,
       startAt: comp.startAtLocal,
       endAt: comp.endAtLocal,
       hidden: comp.hidden,
@@ -101,20 +99,12 @@ export function AdminCompetitionsManager({ competitions: initial }) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Name</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                placeholder="auto-generated if empty"
               />
             </div>
             <div className="space-y-2">

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
+import { generateCompetitionSlug } from "@/lib/slugs";
 import { parseDatetimeLocalToUTC } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
@@ -14,10 +14,16 @@ export async function PATCH(request, { params }) {
     const ip = getClientIp(request);
     const userAgent = getUserAgent(request);
 
+    const current = await prisma.competition.findUnique({ where: { id } });
+    if (!current) {
+      return NextResponse.json({ error: "Competition not found" }, { status: 404 });
+    }
+
     const data = {};
     if (body.name) data.name = body.name;
-    if (body.slug) data.slug = body.slug;
-    if (body.name && !body.slug) data.slug = slugify(body.name);
+    if (body.name && body.name !== current.name) {
+      data.slug = await generateCompetitionSlug(body.name, id);
+    }
     if (body.startAt) data.startAt = parseDatetimeLocalToUTC(body.startAt);
     if (body.endAt) data.endAt = parseDatetimeLocalToUTC(body.endAt);
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;

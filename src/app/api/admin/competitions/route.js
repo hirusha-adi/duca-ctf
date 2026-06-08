@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
+import { generateCompetitionSlug } from "@/lib/slugs";
 import { parseDatetimeLocalToUTC } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
@@ -13,16 +13,18 @@ export async function POST(request) {
     const ip = getClientIp(request);
     const userAgent = getUserAgent(request);
 
-    const { name, slug, startAt, endAt, hidden, status } = body;
+    const { name, startAt, endAt, hidden, status } = body;
 
     if (!name || !startAt || !endAt) {
       return NextResponse.json({ error: "Name, start and end required" }, { status: 400 });
     }
 
+    const slug = await generateCompetitionSlug(name);
+
     const competition = await prisma.competition.create({
       data: {
         name,
-        slug: slug || slugify(name),
+        slug,
         startAt: parseDatetimeLocalToUTC(startAt),
         endAt: parseDatetimeLocalToUTC(endAt),
         hidden: hidden ?? false,

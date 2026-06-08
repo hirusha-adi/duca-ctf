@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isChallengeAvailable } from "@/lib/competitions";
+import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
 import { cn } from "@/lib/utils";
 import { userHasSolvedChallenge, userSolvedFlags } from "@/lib/scoring";
@@ -34,7 +34,12 @@ export default async function ChallengePage({ params }) {
     },
   });
 
-  if (!challenge || challenge.hidden || challenge.competition.hidden) {
+  if (
+    !challenge ||
+    challenge.hidden ||
+    challenge.competition.hidden ||
+    isCompetitionEnded(challenge.competition)
+  ) {
     notFound();
   }
 

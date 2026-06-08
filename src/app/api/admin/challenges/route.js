@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
+import { generateChallengeSlug } from "@/lib/slugs";
 import { hashFlag } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
@@ -17,7 +17,6 @@ export async function POST(request) {
 
     const {
       title,
-      slug,
       competitionId,
       categoryId,
       points,
@@ -54,10 +53,12 @@ export async function POST(request) {
     const content =
       descriptionFormat === "RICHTEXT" ? sanitizeHtml(description) : description;
 
+    const slug = await generateChallengeSlug(title, competitionId);
+
     const challenge = await prisma.challenge.create({
       data: {
         title,
-        slug: slug || slugify(title),
+        slug,
         competitionId,
         categoryId,
         points: Number(points) || 100,

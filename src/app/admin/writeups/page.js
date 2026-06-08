@@ -2,22 +2,27 @@ import { prisma } from "@/lib/db";
 import { AdminWriteupsManager } from "@/components/admin/writeups-manager";
 
 export default async function AdminWriteupsPage() {
-  const challenges = await prisma.challenge.findMany({
-    orderBy: [{ competition: { name: "asc" } }, { title: "asc" }],
+  const competitions = await prisma.competition.findMany({
+    orderBy: { name: "asc" },
     include: {
-      competition: { select: { name: true } },
-      category: { select: { name: true } },
-      writeup: true,
+      challenges: {
+        orderBy: { title: "asc" },
+        include: {
+          category: { select: { name: true } },
+          writeup: true,
+        },
+      },
     },
   });
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Writeups</h1>
+      <h1 className="mb-2 text-2xl font-bold">Writeups</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        Edit writeups at any time, even before competitions end.
+        Select a competition, then a challenge. Writeups auto-save as you type. Paste or
+        drop images directly into the editor.
       </p>
-      <AdminWriteupsManager challenges={challenges} />
+      <AdminWriteupsManager competitions={competitions} />
     </div>
   );
 }

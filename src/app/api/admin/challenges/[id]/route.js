@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { slugify } from "@/lib/utils";
+import { generateChallengeSlug } from "@/lib/slugs";
 import { syncChallengeFlags, flagSyncErrorMessage } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
@@ -18,7 +18,7 @@ export async function PATCH(request, { params }) {
 
     const existing = await prisma.challenge.findUnique({
       where: { id },
-      select: { competitionId: true },
+      select: { competitionId: true, title: true },
     });
 
     if (!existing) {
@@ -27,9 +27,17 @@ export async function PATCH(request, { params }) {
 
     const data = {};
     if (body.title) data.title = body.title;
-    if (body.slug) data.slug = body.slug;
-    if (body.title && !body.slug) data.slug = slugify(body.title);
     if (body.competitionId) data.competitionId = body.competitionId;
+
+    const competitionId = body.competitionId || existing.competitionId;
+    const title = body.title || existing.title;
+    const titleChanged = body.title && body.title !== existing.title;
+    const competitionChanged =
+      body.competitionId && body.competitionId !== existing.competitionId;
+
+    if (titleChanged || competitionChanged) {
+      data.slug = await generateChallengeSlug(title, competitionId, id);
+    }
     if (body.categoryId) data.categoryId = body.categoryId;
     if (body.points !== undefined) data.points = Number(body.points);
     if (body.description !== undefined) {
@@ -41,7 +49,6 @@ export async function PATCH(request, { params }) {
     if (body.descriptionFormat) data.descriptionFormat = body.descriptionFormat;
     if (typeof body.hidden === "boolean") data.hidden = body.hidden;
 
-    const competitionId = body.competitionId || existing.competitionId;
     if (
       body.competitionId !== undefined ||
       body.startAt !== undefined ||

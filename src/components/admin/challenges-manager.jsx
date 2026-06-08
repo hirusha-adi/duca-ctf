@@ -26,7 +26,6 @@ import { DualEditor } from "@/components/editor/dual-editor";
 
 const emptyForm = {
   title: "",
-  slug: "",
   competitionId: "",
   categoryId: "",
   points: 100,
@@ -176,7 +175,6 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
     setEditing(ch.id);
     setForm({
       title: ch.title,
-      slug: ch.slug,
       competitionId: ch.competitionId,
       categoryId: ch.categoryId,
       points: ch.points,
@@ -204,19 +202,12 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-y-2 sm:col-span-2">
                 <Label>Title</Label>
                 <Input
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input
-                  value={form.slug}
-                  onChange={(e) => setForm({ ...form, slug: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
