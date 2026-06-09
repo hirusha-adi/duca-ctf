@@ -17,6 +17,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://duca:duca@localhost:5432/duca_ctf"
 RUN npm run build
 
+# Minimal Prisma CLI install for `migrate deploy` (includes transitive deps like effect)
+FROM base AS migrator
+WORKDIR /app
+ENV DATABASE_URL="postgresql://duca:duca@localhost:5432/duca_ctf"
+RUN npm init -y >/dev/null 2>&1 \
+  && npm install --no-audit --no-fund prisma@7.8.0 dotenv@17.4.2
+
 FROM base AS runner
 WORKDIR /app
 
@@ -40,9 +47,7 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma/create-client.js ./prisma/create-client.js
 COPY --from=builder /app/src/lib/default-site-pages.js ./src/lib/default-site-pages.js
 
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
+COPY --from=migrator /app/node_modules ./prisma-cli/node_modules
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
