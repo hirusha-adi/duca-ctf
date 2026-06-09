@@ -39,7 +39,7 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 ### 1. Clone and install
 
 ```bash
-git clone <repo-url> duca-ctf
+git clone https://github.com/hirusha-adi/duca-ctf.git duca-ctf
 cd duca-ctf
 npm install
 ```
@@ -63,22 +63,7 @@ This starts:
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
-
-```env
-DATABASE_URL=postgresql://duca:duca@localhost:5432/duca_ctf
-REDIS_URL=redis://localhost:6379
-SESSION_SECRET=<random-32+-char-string>
-SMTP_HOST=...
-SMTP_PORT=465
-SMTP_USER=...
-SMTP_PASS=...
-SMTP_FROM_EMAIL=...
-```
-
-`DATABASE_URL` is read from `prisma.config.mjs`, not `schema.prisma`.
-
-Without `REDIS_URL`, the app falls back to in-memory stores (fine for single-process local dev).
+Edit `.env.local`. `DATABASE_URL` is read from `prisma.config.mjs`, not `schema.prisma`. Without `REDIS_URL`, the app falls back to in-memory stores (fine for single-process local dev).
 
 ### 4. Migrate and seed
 
@@ -117,10 +102,12 @@ npm run make-admin -- user@example.com
 | `npm run db:seed` | Seed default categories and site pages |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run make-admin` | Promote a user to admin by email |
+| `npm run db:backup` | Create a production DB backup (prod compose) |
+| `npm run db:restore` | Restore DB from latest backup (prod compose) |
 
 ## Deployment guide
 
-Production runs as three Docker containers behind Caddy. PostgreSQL and Redis communicate with the web app on a private bridge network (`hirusha-duca-ctf-net`). Only the web container also joins the external `intranet_1` network so Caddy can reverse-proxy to it.
+Production runs as four Docker containers behind Caddy. PostgreSQL and Redis communicate with the web app on a private bridge network (`hirusha-duca-ctf-net`). Only the web container also joins the external `intranet_1` network so Caddy can reverse-proxy to it. All persistent data is stored in bind mounts under `./data/` and `./backups/`.
 
 ```
                     ┌─────────────┐
@@ -131,12 +118,19 @@ Production runs as three Docker containers behind Caddy. PostgreSQL and Redis co
                     │  hirusha-duca-ctf-web   │
                     └──┬──────────────────┬───┘
            hirusha-duca-ctf-net           │
-              ┌──────────┴──────────┐     │
-              │                     │     │
-     ┌────────▼────────┐   ┌───────▼─────────┐
-     │ hirusha-duca-ctf │   │ hirusha-duca-ctf│
-     │    -postgres     │   │     -redis      │
-     └──────────────────┘   └─────────────────┘
+    ┌──────────┼──────────┬───────────────┘
+    │          │          │
+┌───▼────┐ ┌───▼─────┐ ┌──▼─────┐
+│postgres│ │  redis  │ │ backup │  (daily cron)
+└───┬────┘ └────┬────┘ └───┬────┘
+    │           │          │
+ ./data/    ./data/    ./backups/
+```
+
+Before first deploy, create the data directories (git keeps the paths via `.gitkeep` files):
+
+```bash
+mkdir -p data/postgres data/redis data/uploads backups
 ```
 
 ### Prerequisites
@@ -159,14 +153,6 @@ On the server, clone the repo and create `.env` from the production template:
 ```bash
 cp .env.prod.example .env
 ```
-
-Edit `.env` — at minimum set:
-
-| Variable | Notes |
-|----------|-------|
-| `POSTGRES_PASSWORD` | Strong password; used by Postgres and `DATABASE_URL` |
-| `SESSION_SECRET` | Random string, at least 32 characters |
-| `SMTP_*` | Required for login codes |
 
 `docker-compose.prod.yml` sets `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`, and `UPLOAD_DIR` automatically.
 
@@ -202,7 +188,8 @@ ctf.example.com {
 }
 ```
 
-Example Caddy Docker Compose snippet:
+<details>
+<summary>Example Caddy Docker Compose snippet</summary>
 
 ```yaml
 services:
@@ -223,6 +210,8 @@ networks:
     external: true
 ```
 
+</details>
+
 The web container is **not** published to the host — Caddy is the only public entry point.
 
 ### Production services
@@ -232,14 +221,16 @@ The web container is **not** published to the host — Caddy is the only public 
 | `hirusha-duca-ctf-web` | `hirusha-duca-ctf-net`, `intranet_1` | Next.js, port 3000 (expose only) |
 | `hirusha-duca-ctf-postgres` | `hirusha-duca-ctf-net` | No host port binding |
 | `hirusha-duca-ctf-redis` | `hirusha-duca-ctf-net` | No host port binding |
+| `hirusha-duca-ctf-backup` | `hirusha-duca-ctf-net` | Daily `pg_dump` at 03:00, keeps 3 rotating copies |
 
-### Volumes
+### Data directories (bind mounts)
 
-| Volume | Purpose |
-|--------|---------|
-| `hirusha-duca-ctf-pgdata` | PostgreSQL data |
-| `hirusha-duca-ctf-redisdata` | Redis AOF persistence |
-| `hirusha-duca-ctf-uploads` | User/support/writeup uploads (`/app/data/uploads`) |
+| Host path | Container path | Purpose |
+|-----------|----------------|---------|
+| `./data/postgres` | `/var/lib/postgresql/data` | PostgreSQL data |
+| `./data/redis` | `/data` | Redis AOF persistence |
+| `./data/uploads` | `/app/data/uploads` | User/support/writeup uploads |
+| `./backups` | `/backups` | Gzip SQL dumps (`duca_ctf_YYYYMMDD_HHMMSS.sql.gz`) |
 
 ### Updates
 
@@ -264,18 +255,86 @@ sudo docker compose -f docker-compose.prod.yml logs -f hirusha-duca-ctf-web
 sudo docker compose -f docker-compose.prod.yml restart hirusha-duca-ctf-web
 ```
 
-**Backup Postgres**
-
-```bash
-sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-postgres \
-  pg_dump -U duca duca_ctf > backup.sql
-```
-
 **Shell into web container**
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web sh
 ```
+
+### Database backup and restore
+
+Backups are gzip-compressed SQL dumps written to `./backups/`. The stack keeps only the **3 newest** files — older backups are deleted automatically after every backup, including manual runs.
+
+#### Automatic backups
+
+The `hirusha-duca-ctf-backup` container runs a cron job **every day at 03:00** (container local time). It starts with the rest of the stack:
+
+```bash
+sudo docker compose -f docker-compose.prod.yml up -d
+```
+
+View backup scheduler logs:
+
+```bash
+sudo docker compose -f docker-compose.prod.yml logs -f hirusha-duca-ctf-backup
+```
+
+#### Manual backup
+
+From the project root on the host:
+
+```bash
+npm run db:backup
+# or
+bash scripts/backup-db.sh
+```
+
+This creates a new `backups/duca_ctf_YYYYMMDD_HHMMSS.sql.gz` and prunes older files down to 3.
+
+List current backups:
+
+```bash
+ls -lh backups/
+```
+
+#### Restore
+
+**Warning:** restore replaces the current database contents.
+
+Restore the **latest** backup (stops the web container during restore, then starts it again):
+
+```bash
+npm run db:restore
+# or
+bash scripts/restore-db.sh
+```
+
+Restore a **specific** backup:
+
+```bash
+bash scripts/restore-db.sh backups/duca_ctf_20250608_030001.sql.gz
+```
+
+Skip the confirmation prompt:
+
+```bash
+bash scripts/restore-db.sh -y
+```
+
+Keep the web container running (not recommended during restore):
+
+```bash
+bash scripts/restore-db.sh -y --no-stop-web backups/duca_ctf_20250608_030001.sql.gz
+```
+
+#### Backup configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `BACKUP_KEEP_COUNT` | `3` | Number of rotating backups to retain |
+| `POSTGRES_DB` | `duca_ctf` | Database name used in dump filenames |
+
+Set `BACKUP_KEEP_COUNT` in `.env` if you want a different retention count.
 
 ### Production checklist
 
@@ -285,4 +344,6 @@ sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web sh
 - [ ] Caddy `reverse_proxy` points to `hirusha-duca-ctf-web:3000`
 - [ ] Database seeded on first deploy
 - [ ] At least one admin user promoted
-- [ ] Upload volume backed up with the rest of the stack
+- [ ] `data/` and `backups/` directories exist on the host
+- [ ] `hirusha-duca-ctf-backup` container is running
+- [ ] At least one manual backup verified (`npm run db:backup`)

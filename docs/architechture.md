@@ -88,18 +88,28 @@ There is **no Next.js middleware**. Access control is enforced per-page (`requir
 
 ### Production
 
-Three containers on two Docker networks:
+Four containers on two Docker networks:
 
 | Container | Network(s) | Purpose |
 |-----------|------------|---------|
 | `hirusha-duca-ctf-web` | `hirusha-duca-ctf-net`, `intranet_1` | Next.js app (port 3000, expose only) |
 | `hirusha-duca-ctf-postgres` | `hirusha-duca-ctf-net` | Database (not exposed to host) |
 | `hirusha-duca-ctf-redis` | `hirusha-duca-ctf-net` | Pub/sub + rate limits (not exposed to host) |
+| `hirusha-duca-ctf-backup` | `hirusha-duca-ctf-net` | Daily `pg_dump` cron (03:00), 3-file rotation |
 
 - **`hirusha-duca-ctf-net`** — private bridge; web talks to Postgres and Redis by container hostname.
 - **`intranet_1`** — external shared network; Caddy reaches `hirusha-duca-ctf-web:3000`.
 
-On container start, `docker-entrypoint.sh` runs `prisma migrate deploy`, then `node server.js`. Uploads persist in the `hirusha-duca-ctf-uploads` volume at `/app/data/uploads`.
+Persistent data uses **host bind mounts** (not named Docker volumes):
+
+| Host path | Purpose |
+|-----------|---------|
+| `./data/postgres` | PostgreSQL data directory |
+| `./data/redis` | Redis AOF files |
+| `./data/uploads` | Uploaded images and support attachments |
+| `./backups` | Rotating gzip SQL dumps |
+
+On container start, `docker-entrypoint.sh` runs `prisma migrate deploy`, then `node server.js`. Backup/restore scripts live in `scripts/backup-db.sh` and `scripts/restore-db.sh`.
 
 ---
 

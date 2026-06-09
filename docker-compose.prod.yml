@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-duca_ctf}
     volumes:
-      - hirusha-duca-ctf-pgdata:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
     networks:
       - hirusha-duca-ctf-net
     healthcheck:
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - hirusha-duca-ctf-redisdata:/data
+      - ./data/redis:/data
     networks:
       - hirusha-duca-ctf-net
     healthcheck:
@@ -53,7 +53,7 @@ services:
       REDIS_URL: redis://hirusha-duca-ctf-redis:6379
       UPLOAD_DIR: /app/data/uploads
     volumes:
-      - hirusha-duca-ctf-uploads:/app/data/uploads
+      - ./data/uploads:/app/data/uploads
     depends_on:
       hirusha-duca-ctf-postgres:
         condition: service_healthy
@@ -65,10 +65,30 @@ services:
     expose:
       - "3000"
 
-volumes:
-  hirusha-duca-ctf-pgdata:
-  hirusha-duca-ctf-redisdata:
-  hirusha-duca-ctf-uploads:
+  hirusha-duca-ctf-backup:
+    image: alpine:3.20
+    container_name: hirusha-duca-ctf-backup
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PGHOST: hirusha-duca-ctf-postgres
+      POSTGRES_USER: ${POSTGRES_USER:-duca}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-duca_ctf}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_COUNT: ${BACKUP_KEEP_COUNT:-3}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+      - ./scripts/backup-entrypoint.sh:/usr/local/bin/backup-entrypoint.sh:ro
+      - ./scripts/lib:/usr/local/lib/duca-ctf:ro
+    networks:
+      - hirusha-duca-ctf-net
+    depends_on:
+      hirusha-duca-ctf-postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup-entrypoint.sh"]
 
 networks:
   hirusha-duca-ctf-net:

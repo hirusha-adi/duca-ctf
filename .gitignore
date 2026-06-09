@@ -42,3 +42,13 @@ next-env.d.ts
 # uploads
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# production bind mounts
+/data/postgres/*
+!/data/postgres/.gitkeep
+/data/redis/*
+!/data/redis/.gitkeep
+/data/uploads/*
+!/data/uploads/.gitkeep
+/backups/*
+!/backups/.gitkeep
