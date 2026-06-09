@@ -209,9 +209,39 @@ Caddy must be attached to `intranet_1` so it can reach the web container by serv
 
 ```caddyfile
 ctf.example.com {
-    reverse_proxy hirusha-duca-ctf-web:3000
+    reverse_proxy hirusha-duca-ctf-web:3000 {
+        # Forward the visitor's public IP to the app for telemetry and solve logging
+        header_up X-Forwarded-For {remote_ip}
+        header_up X-Real-IP {remote_ip}
+        header_up X-Forwarded-Proto {scheme}
+        header_up Host {host}
+    }
 }
 ```
+
+#### Client IP logging (telemetry / solves)
+
+The app reads the visitor IP from proxy headers in this order:
+
+1. `X-Forwarded-For` (first address in the list)
+2. `X-Real-IP`
+3. `CF-Connecting-IP` (if you terminate TLS at Cloudflare in front of Caddy)
+
+Caddy is the only service that should reach `hirusha-duca-ctf-web` on `intranet_1`, so these headers are trusted. The web container is not published to the host, which prevents clients from bypassing Caddy and spoofing IPs.
+
+**Verify it works** — after deploy, log in or submit a flag, then check Admin → Telemetry. The IP column should show your public address, not a Docker internal IP like `172.x.x.x`.
+
+```bash
+# Quick header check from inside the intranet_1 network (optional)
+sudo docker run --rm --network intranet_1 curlimages/curl:latest \
+  -sI -H "Host: ctf.example.com" http://hirusha-duca-ctf-web:3000/ | grep -i forwarded
+```
+
+If IPs still show as `127.0.0.1`:
+
+- Confirm Caddy and `hirusha-duca-ctf-web` are both on `intranet_1`
+- Confirm the Caddyfile uses the container name `hirusha-duca-ctf-web:3000`, not `localhost:3000`
+- Reload Caddy after editing the Caddyfile: `sudo docker compose restart caddy`
 
 <details>
 <summary>Example Caddy Docker Compose snippet</summary>

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatInAEST } from "@/lib/timezone";
-import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
+import { logActivity, getClientIpFromHeaders } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { headers } from "next/headers";
 import { getUserChallengeSubmissionStats } from "@/lib/submissions";
@@ -40,7 +40,7 @@ export default async function ChallengePage({ params }) {
   }
 
   const headersList = await headers();
-  const ip = headersList.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const ip = getClientIpFromHeaders(headersList);
   const userAgent = headersList.get("user-agent") || "";
   await logActivity({
     userId: user.id,

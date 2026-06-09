@@ -22,14 +22,23 @@ export async function logActivity({
   }
 }
 
-export function getClientIp(request) {
-  const forwarded = request.headers.get("x-forwarded-for");
+export function getClientIpFromHeaders(headerStore) {
+  const forwarded = headerStore.get("x-forwarded-for");
   if (forwarded) {
     return forwarded.split(",")[0].trim();
   }
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp;
+
+  const realIp = headerStore.get("x-real-ip");
+  if (realIp) return realIp.trim();
+
+  const cfConnectingIp = headerStore.get("cf-connecting-ip");
+  if (cfConnectingIp) return cfConnectingIp.trim();
+
   return "127.0.0.1";
+}
+
+export function getClientIp(request) {
+  return getClientIpFromHeaders(request.headers);
 }
 
 export function getUserAgent(request) {
