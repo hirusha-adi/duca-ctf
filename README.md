@@ -154,7 +154,32 @@ On the server, clone the repo and create `.env` from the production template:
 cp .env.prod.example .env
 ```
 
-`docker-compose.prod.yml` sets `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`, and `UPLOAD_DIR` automatically.
+Generate strong secrets with OpenSSL (run on the server, paste the output into `.env`):
+
+```bash
+# PostgreSQL password (32 hex chars)
+openssl rand -hex 16
+
+# Session secret — iron-session requires at least 32 characters (48 chars base64)
+openssl rand -base64 36
+```
+
+Copy the values into `.env`:
+
+```env
+POSTGRES_PASSWORD=<output from first command>
+SESSION_SECRET=<output from second command>
+```
+
+And also fill all of the other values.
+
+| Variable | Notes |
+|----------|-------|
+| `POSTGRES_PASSWORD` | Used by Postgres and the web app's `DATABASE_URL` |
+| `SESSION_SECRET` | Signs/encrypts login cookies; must be at least 32 characters |
+| `SMTP_*` | Your mail provider credentials (not generated) |
+
+`docker-compose.prod.yml` sets `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`, and `UPLOAD_DIR` automatically from `POSTGRES_*` values.
 
 ### 2. Build and start
 
