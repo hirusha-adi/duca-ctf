@@ -135,6 +135,12 @@ mkdir -p data/postgres/pgdata data/redis data/uploads backups
 
 PostgreSQL requires an **empty** data directory on first start. The repo keeps `data/postgres/.gitkeep` for git, but the actual database files live in `data/postgres/pgdata/` (which must stay empty until the container initializes it).
 
+Create these dirs as your deploy user (no `sudo`). If you already ran `sudo` on `data/`, fix ownership before building:
+
+```bash
+sudo chown -R $USER:$USER data backups
+```
+
 ### Prerequisites
 
 - Docker and Docker Compose v2 on the host
@@ -333,7 +339,8 @@ Common causes:
 | Log message | Fix |
 |-------------|-----|
 | `directory exists but is not empty` | `data/postgres/pgdata` must be empty on first deploy. Remove stray files: `rm -rf data/postgres/pgdata/*` then `mkdir -p data/postgres/pgdata` and restart. |
-| `Permission denied` | Fix ownership: `sudo chown -R 999:999 data/postgres/pgdata` |
+| `Permission denied` (postgres logs) | Fix ownership: `sudo chown -R 999:999 data/postgres/pgdata` |
+| `permission denied` during `docker compose up --build` | `sudo` on `data/` left dirs root-owned. Fix: `sudo chown -R $USER:$USER data backups` then rebuild |
 | `POSTGRES_PASSWORD is missing` | Create `.env` from `.env.prod.example` and set `POSTGRES_PASSWORD` |
 
 After fixing, bring the stack back up:
