@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ACTIVITY_LOG_RETENTION_DAYS } from "@/lib/activity-retention";
 import { AdminTelemetryTable } from "@/components/admin/telemetry-table";
 import { formatInAEST } from "@/lib/timezone";
 
@@ -40,7 +41,11 @@ export default async function AdminTelemetryPage({ searchParams }) {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Telemetry</h1>
+      <h1 className="mb-2 text-2xl font-bold">Telemetry</h1>
+      <p className="mb-6 text-sm text-muted-foreground">
+        Activity older than {ACTIVITY_LOG_RETENTION_DAYS} days is automatically
+        deleted.
+      </p>
       <AdminTelemetryTable
         logs={serialized}
         users={users}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { ACTIVITY_LOG_RETENTION_DAYS } from "@/lib/activity-retention";
 import { decodeAdminUserEmail } from "@/lib/admin-user-paths";
 import { formatInAEST } from "@/lib/timezone";
 import { AdminPagination } from "@/components/admin/admin-pagination";
@@ -179,6 +180,10 @@ export default async function AdminUserDetailPage({ params, searchParams }) {
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Activity log</h2>
+        <p className="text-sm text-muted-foreground">
+          Entries older than {ACTIVITY_LOG_RETENTION_DAYS} days are automatically
+          deleted.
+        </p>
         {activityLogs.length === 0 ? (
           <p className="text-sm text-muted-foreground">No activity recorded.</p>
         ) : (

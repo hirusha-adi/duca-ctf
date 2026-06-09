@@ -100,6 +100,7 @@ npm run make-admin -- user@example.com
 | `npm run db:migrate` | Run Prisma migrations (dev) |
 | `npm run db:migrate:deploy` | Apply migrations (production) |
 | `npm run db:seed` | Seed default categories and site pages |
+| `npm run db:purge-activity` | Delete activity logs older than 14 days |
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run make-admin` | Promote a user to admin by email |
 | `npm run db:backup` | Create a production DB backup (prod compose) |
@@ -186,6 +187,7 @@ And also fill all of the other values.
 | `POSTGRES_PASSWORD` | Used by Postgres and the web app's `DATABASE_URL` |
 | `SESSION_SECRET` | Signs/encrypts login cookies; must be at least 32 characters |
 | `SMTP_*` | Your mail provider credentials (not generated) |
+| `BUGSINK_DSN` | Optional. Bugsink error-tracking DSN (Sentry-compatible SDK). Set before `docker compose build` so browser errors are captured too. |
 
 `docker-compose.prod.yml` sets `DATABASE_URL`, `REDIS_URL`, `NODE_ENV`, and `UPLOAD_DIR` automatically from `POSTGRES_*` values.
 
@@ -423,6 +425,43 @@ bash scripts/restore-db.sh -y --no-stop-web backups/duca_ctf_20250608_030001.sql
 | `POSTGRES_DB` | `duca_ctf` | Database name used in dump filenames |
 
 Set `BACKUP_KEEP_COUNT` in `.env` if you want a different retention count.
+
+### Activity log retention
+
+User activity (telemetry, per-user activity details, submission history) is kept on a rolling **14-day** window. Records older than that are deleted automatically:
+
+- On every web container start (production)
+- Daily at 03:15 by the backup scheduler container
+- On dev server startup (`src/instrumentation.js`)
+
+Override with `ACTIVITY_LOG_RETENTION_DAYS` in `.env` if needed.
+
+### Error tracking (Bugsink)
+
+The app uses the Sentry-compatible SDK (`@sentry/nextjs`) pointed at [Bugsink](https://bugsink.com/). Set `BUGSINK_DSN` in `.env.local` (dev) or `.env` (production). When unset, error tracking is disabled.
+
+**Development**
+
+```bash
+# .env.local
+BUGSINK_DSN=https://<key>@bugsink.example.com/<project-id>
+```
+
+Restart the dev server after adding the DSN. To verify, trigger a test error from application code (not the browser console):
+
+```javascript
+throw new Error("Test error for Bugsink");
+```
+
+**Production**
+
+Add `BUGSINK_DSN` to `.env` before building the image — the DSN is embedded in the client bundle at build time:
+
+```bash
+sudo docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Server-side errors also use the runtime `BUGSINK_DSN` from the container environment.
 
 ### Production checklist
 

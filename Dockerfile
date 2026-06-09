@@ -11,10 +11,12 @@ RUN npm ci
 
 FROM base AS builder
 WORKDIR /app
+ARG BUGSINK_DSN
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://duca:duca@localhost:5432/duca_ctf"
+ENV BUGSINK_DSN=$BUGSINK_DSN
 RUN npm run build
 
 # Minimal Prisma CLI install for `migrate deploy` (includes transitive deps like effect)
@@ -52,6 +54,7 @@ COPY --from=builder /app/prisma.config.mjs ./prisma.config.mjs
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma/create-client.js ./prisma/create-client.js
 COPY --from=builder /app/src/lib/default-site-pages.js ./src/lib/default-site-pages.js
+COPY --from=builder /app/src/lib/activity-retention.js ./src/lib/activity-retention.js
 
 COPY --from=migrator /app/node_modules ./prisma-cli/node_modules
 
