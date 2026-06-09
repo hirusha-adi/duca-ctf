@@ -50,6 +50,8 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
       DATABASE_URL: postgresql://${POSTGRES_USER:-duca}:${POSTGRES_PASSWORD}@hirusha-duca-ctf-postgres:5432/${POSTGRES_DB:-duca_ctf}
       REDIS_URL: redis://hirusha-duca-ctf-redis:6379
       UPLOAD_DIR: /app/data/uploads
