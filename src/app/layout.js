@@ -17,6 +17,11 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata = {
   title: "DUCA CTF",
   description: "Deakin University Cybersecurity Association CTF Platform",
+  icons: {
+    icon: "/duca-logo.png",
+    shortcut: "/duca-logo.png",
+    apple: "/duca-logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {
