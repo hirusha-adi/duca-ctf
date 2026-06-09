@@ -104,7 +104,7 @@ Persistent data uses **host bind mounts** (not named Docker volumes):
 
 | Host path | Purpose |
 |-----------|---------|
-| `./data/postgres` | PostgreSQL data directory |
+| `./data/postgres/pgdata` | PostgreSQL data directory |
 | `./data/redis` | Redis AOF files |
 | `./data/uploads` | Uploaded images and support attachments |
 | `./backups` | Rotating gzip SQL dumps |

@@ -130,8 +130,10 @@ Production runs as four Docker containers behind Caddy. PostgreSQL and Redis com
 Before first deploy, create the data directories (git keeps the paths via `.gitkeep` files):
 
 ```bash
-mkdir -p data/postgres data/redis data/uploads backups
+mkdir -p data/postgres/pgdata data/redis data/uploads backups
 ```
+
+PostgreSQL requires an **empty** data directory on first start. The repo keeps `data/postgres/.gitkeep` for git, but the actual database files live in `data/postgres/pgdata/` (which must stay empty until the container initializes it).
 
 ### Prerequisites
 
@@ -282,7 +284,7 @@ The web container is **not** published to the host — Caddy is the only public 
 
 | Host path | Container path | Purpose |
 |-----------|----------------|---------|
-| `./data/postgres` | `/var/lib/postgresql/data` | PostgreSQL data |
+| `./data/postgres/pgdata` | `/var/lib/postgresql/data` | PostgreSQL data |
 | `./data/redis` | `/data` | Redis AOF persistence |
 | `./data/uploads` | `/app/data/uploads` | User/support/writeup uploads |
 | `./backups` | `/backups` | Gzip SQL dumps (`duca_ctf_YYYYMMDD_HHMMSS.sql.gz`) |
@@ -314,6 +316,30 @@ sudo docker compose -f docker-compose.prod.yml restart hirusha-duca-ctf-web
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web sh
+```
+
+### Troubleshooting
+
+**`hirusha-duca-ctf-postgres` exits immediately**
+
+Check the logs:
+
+```bash
+sudo docker compose -f docker-compose.prod.yml logs hirusha-duca-ctf-postgres
+```
+
+Common causes:
+
+| Log message | Fix |
+|-------------|-----|
+| `directory exists but is not empty` | `data/postgres/pgdata` must be empty on first deploy. Remove stray files: `rm -rf data/postgres/pgdata/*` then `mkdir -p data/postgres/pgdata` and restart. |
+| `Permission denied` | Fix ownership: `sudo chown -R 999:999 data/postgres/pgdata` |
+| `POSTGRES_PASSWORD is missing` | Create `.env` from `.env.prod.example` and set `POSTGRES_PASSWORD` |
+
+After fixing, bring the stack back up:
+
+```bash
+sudo docker compose -f docker-compose.prod.yml up -d
 ```
 
 ### Database backup and restore

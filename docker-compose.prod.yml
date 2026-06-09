@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-duca_ctf}
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      # pgdata/ must be empty on first deploy (parent dir may contain .gitkeep)
+      - ./data/postgres/pgdata:/var/lib/postgresql/data
     networks:
       - hirusha-duca-ctf-net
     healthcheck:
