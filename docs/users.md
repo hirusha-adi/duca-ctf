@@ -2,6 +2,8 @@
 
 How to use the DUCA CTF platform as a player.
 
+**Production site:** [https://ctf.duca.au](https://ctf.duca.au)
+
 ## Individual play only
 
 This platform is for **individual participation only**. You sign up with your own email, solve challenges under your own account, and earn points on your own leaderboard entry.
@@ -14,7 +16,7 @@ This platform is for **individual participation only**. You sign up with your ow
 
 ### Creating an account
 
-1. Go to **Login** (`/login`).
+1. Go to **Login** at [https://ctf.duca.au/login](https://ctf.duca.au/login).
 2. Enter your email address and request a login code.
 3. Check your inbox for a **6-digit code** (valid for 10 minutes).
 4. Enter the code to sign in.
@@ -36,7 +38,7 @@ Use **Logout** from the navigation menu. Your session lasts up to 7 days unless 
 
 ### Rules
 
-By playing, you agree to the platform [General Rules](/rules) and [Terms of Service](/terms). Key points:
+By playing, you agree to the platform [General Rules](https://ctf.duca.au/rules) and [Terms of Service](https://ctf.duca.au/terms). Key points:
 
 - One person, one account
 - Do not share flags or solutions unless organisers explicitly allow it
@@ -53,7 +55,7 @@ A **competition** is a scheduled CTF event — for example, a DUCA trimester CTF
 - A start and end time (AEST/AEDT)
 - A set of challenges grouped by category
 
-Browse competitions at **Competitions** (`/competitions`). Open a competition to see its challenges, schedule, and status.
+Browse competitions at [https://ctf.duca.au/competitions](https://ctf.duca.au/competitions). Open a competition to see its challenges, schedule, and status.
 
 ### Competition states
 
@@ -69,7 +71,7 @@ Browse competitions at **Competitions** (`/competitions`). Open a competition to
 
 ### Opening a challenge
 
-Challenge pages (`/challenges/[id]`) require you to be **logged in**. Guests can browse competition listings but cannot open individual challenges or submit flags.
+Challenge pages (e.g. `https://ctf.duca.au/challenges/[id]`) require you to be **logged in**. Guests can browse competition listings but cannot open individual challenges or submit flags.
 
 On a challenge page you will see:
 
@@ -106,7 +108,7 @@ Submissions are blocked when:
 
 ### Leaderboard
 
-**Leaderboard** (`/leaderboard`) shows rankings per competition:
+**Leaderboard** at [https://ctf.duca.au/leaderboard](https://ctf.duca.au/leaderboard) shows rankings per competition:
 
 - Total points per player (individual scores only — no teams)
 - Tie-break: earlier last solve wins
@@ -116,7 +118,7 @@ Rankings use your display name when set, otherwise your email.
 
 ### Live solves
 
-**Live Solves** (`/solves`) is a real-time feed of correct submissions across competitions. Filter by competition to follow an event as it happens.
+**Live Solves** at [https://ctf.duca.au/solves](https://ctf.duca.au/solves) is a real-time feed of correct submissions across competitions. Filter by competition to follow an event as it happens.
 
 ---
 
@@ -124,7 +126,7 @@ Rankings use your display name when set, otherwise your email.
 
 After a competition **ends**, organisers may publish **writeups** — worked solutions for each challenge.
 
-- Browse writeups at **Writeups** (`/writeups`) (login required)
+- Browse writeups at [https://ctf.duca.au/writeups](https://ctf.duca.au/writeups) (login required)
 - Writeups are locked while a competition is still running
 - If no writeup has been published for a challenge yet, the page says so
 
@@ -134,7 +136,7 @@ Writeups are for learning after the event. Do not share them publicly before org
 
 ## Support
 
-If you need help during an event — a broken challenge, a scoring question, or a platform issue — use **Support** (`/support`).
+If you need help during an event — a broken challenge, a scoring question, or a platform issue — use **Support** at [https://ctf.duca.au/support](https://ctf.duca.au/support).
 
 1. Create a ticket with a subject and message.
 2. Optionally link the ticket to a competition or challenge.
@@ -161,12 +163,12 @@ You can only see your own tickets. Organisers reply as **DUCA Support**. Tickets
 
 ## Privacy
 
-The platform logs activity for security and operations (logins, page views, submissions, IP address). See the [Privacy Policy](/privacy) for details. Activity logs are retained for a limited period (default 14 days).
+The platform logs activity for security and operations (logins, page views, submissions, IP address). See the [Privacy Policy](https://ctf.duca.au/privacy) for details. Activity logs are retained for a limited period (default 14 days).
 
 ---
 
 ## Getting help
 
-- **Platform / challenge issues during an event:** [Support](/support)
+- **Platform / challenge issues during an event:** [https://ctf.duca.au/support](https://ctf.duca.au/support)
 - **DUCA association:** [duca.au](https://duca.au)
 - **Rule clarifications:** organisers via official event channels or support tickets

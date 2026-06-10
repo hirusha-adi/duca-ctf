@@ -4,6 +4,8 @@ Documentation for **DUCA staff and competition organisers** who run events on th
 
 This is the most detailed guide in the documentation set. If you are a player looking for how to submit flags or read writeups, see the [user guide](./users.md) instead.
 
+**Production instance:** [https://ctf.duca.au](https://ctf.duca.au) · **Admin panel:** [https://ctf.duca.au/admin](https://ctf.duca.au/admin)
+
 ---
 
 ## Individual play only
@@ -14,7 +16,7 @@ This is the most detailed guide in the documentation set. If you are a player lo
 - Assign players to a team
 - View a team leaderboard or team score
 
-DUCA may run events where informal collaboration is allowed (see [General Rules](/rules)), but the software only supports **individual play**. When planning a trimester CTF, tell students to register individually — do not expect a team mode in the admin panel.
+DUCA may run events where informal collaboration is allowed (see [General Rules](https://ctf.duca.au/rules)), but the software only supports **individual play**. When planning a trimester CTF, tell students to register individually — do not expect a team mode in the admin panel.
 
 ---
 
@@ -68,7 +70,7 @@ Admins use the **same login flow as players** (email OTP). There is no separate 
 ### First admin on a new deployment
 
 1. Deploy or start the platform.
-2. Register by logging in at `/login` with your email.
+2. Register by logging in at [https://ctf.duca.au/login](https://ctf.duca.au/login) with your email.
 3. Promote yourself from the server:
 
    **Local development:**
@@ -96,20 +98,20 @@ Admins use the **same login flow as players** (email OTP). There is no separate 
 
 ## Admin panel
 
-Open **Admin** (`/admin`) from the navigation bar. Non-admins are redirected to the home page.
+Open **Admin** at [https://ctf.duca.au/admin](https://ctf.duca.au/admin) from the navigation bar. Non-admins are redirected to the home page.
 
-| Section | Path | Purpose |
-|---------|------|---------|
-| Dashboard | `/admin` | Counts: users, competitions, challenges, activity in last 24 h |
-| Users | `/admin/users` | List, promote/demote, disable accounts |
-| User detail | `/admin/user/[email]` | Per-user solves, stats, full activity log |
-| Competitions | `/admin/competitions` | Create and schedule events |
-| Challenges | `/admin/challenges` | Create tasks, flags, points, categories |
-| Submissions | `/admin/submissions` | Flag attempt history, unsolve |
-| Support Chats | `/admin/chats` | All player support tickets |
-| Writeups | `/admin/writeups` | Post-event solution content |
-| Pages | `/admin/pages` | Rules, terms, privacy, custom pages |
-| Telemetry | `/admin/telemetry` | Full activity log with filters |
+| Section | URL | Purpose |
+|---------|-----|---------|
+| Dashboard | [ctf.duca.au/admin](https://ctf.duca.au/admin) | Counts: users, competitions, challenges, activity in last 24 h |
+| Users | [ctf.duca.au/admin/users](https://ctf.duca.au/admin/users) | List, promote/demote, disable accounts |
+| User detail | `ctf.duca.au/admin/user/[email]` | Per-user solves, stats, full activity log |
+| Competitions | [ctf.duca.au/admin/competitions](https://ctf.duca.au/admin/competitions) | Create and schedule events |
+| Challenges | [ctf.duca.au/admin/challenges](https://ctf.duca.au/admin/challenges) | Create tasks, flags, points, categories |
+| Submissions | [ctf.duca.au/admin/submissions](https://ctf.duca.au/admin/submissions) | Flag attempt history, unsolve |
+| Support Chats | [ctf.duca.au/admin/chats](https://ctf.duca.au/admin/chats) | All player support tickets |
+| Writeups | [ctf.duca.au/admin/writeups](https://ctf.duca.au/admin/writeups) | Post-event solution content |
+| Pages | [ctf.duca.au/admin/pages](https://ctf.duca.au/admin/pages) | Rules, terms, privacy, custom pages |
+| Telemetry | [ctf.duca.au/admin/telemetry](https://ctf.duca.au/admin/telemetry) | Full activity log with filters |
 
 ---
 
@@ -125,7 +127,7 @@ End-to-end playbook for DUCA staff.
 
 2. **Edit site content if needed**
    - **Admin → Pages** — update Rules, Terms, or Privacy for this trimester.
-   - Add a custom page (e.g. `/pages/t1-2026-info`) with event-specific info; link it from your announcement.
+   - Add a custom page (e.g. `https://ctf.duca.au/pages/t1-2026-info`) with event-specific info; link it from your announcement.
 
 3. **Create the competition**
    - **Admin → Competitions →** create.
@@ -144,14 +146,14 @@ End-to-end playbook for DUCA staff.
 5. **Add categories** if needed (inline "Add category" on the challenge form).
 
 6. **Announce registration**
-   - Tell students to register **individually** at the platform URL.
+   - Tell students to register **individually** at [https://ctf.duca.au](https://ctf.duca.au).
    - Remind them: **no team accounts** — one email per person.
 
 ### Phase 2 — Go live
 
 1. **Unhide the competition** — toggle **Hidden** off in **Admin → Competitions**.
-2. Verify the competition appears on `/competitions` and challenges unlock at the correct times.
-3. Monitor **Live Solves** (`/solves`) and **Leaderboard** during the event.
+2. Verify the competition appears on [https://ctf.duca.au/competitions](https://ctf.duca.au/competitions) and challenges unlock at the correct times.
+3. Monitor **Live Solves** at [https://ctf.duca.au/solves](https://ctf.duca.au/solves) and the **Leaderboard** at [https://ctf.duca.au/leaderboard](https://ctf.duca.au/leaderboard) during the event.
 4. Staff should watch **Support Chats** for broken challenges or player questions.
 
 ### Phase 3 — During the event
@@ -175,7 +177,7 @@ End-to-end playbook for DUCA staff.
 2. **Write writeups**
    - **Admin → Writeups** → select competition and challenge.
    - Content auto-saves. Use images via paste/drop (uploaded to the server).
-   - Players see writeups at `/writeups` once the competition has ended.
+   - Players see writeups at [https://ctf.duca.au/writeups](https://ctf.duca.au/writeups) once the competition has ended.
 3. **Review submissions** for anomalies before publishing final standings.
 4. **Optional:** export or screenshot leaderboard for records (no built-in export — use admin views or database backup).
 
@@ -239,7 +241,7 @@ New competitions are created with status **DRAFT**. Players can compete when: no
 | **Demote** | Removes admin access |
 | **Disable** | Blocks login; destroys session on next request |
 
-**User detail** (`/admin/user/[email]`): solve history (challenge, competition, points, IP, time) and paginated activity log. Use for investigating suspected multi-accounting or shared flags.
+**User detail** (`https://ctf.duca.au/admin/user/[email]`): solve history (challenge, competition, points, IP, time) and paginated activity log. Use for investigating suspected multi-accounting or shared flags.
 
 ### Submissions
 
@@ -257,7 +259,7 @@ Unsolve removes all solve records for that user+challenge and logs the action. U
 
 Inbox of **all** player tickets. Search by subject, name, or email. Filter OPEN / CLOSED.
 
-Deep link: `/admin/chats?ticket=<id>`.
+Deep link: `https://ctf.duca.au/admin/chats?ticket=<id>`.
 
 Real-time updates via server-sent events (SSE). All admins see the same inbox.
 
@@ -276,7 +278,7 @@ Select competition → challenge → author content.
 | System | `rules`, `terms`, `privacy` | No — content editable only |
 | Custom | Your choice | Yes |
 
-Custom pages can be **hidden** from public navigation. Public URL: `/pages/[slug]` (system pages also at `/rules`, `/terms`, `/privacy`).
+Custom pages can be **hidden** from public navigation. Public URL: `https://ctf.duca.au/pages/[slug]` (system pages also at [rules](https://ctf.duca.au/rules), [terms](https://ctf.duca.au/terms), [privacy](https://ctf.duca.au/privacy)).
 
 Update rules before each trimester if collaboration or eligibility policies change. Remember to state that play is **individual** even if informal pairing is allowed.
 

@@ -2,11 +2,13 @@
 
 Documentation for the [Deakin University Cybersecurity Association](https://duca.au/) (DUCA) capture-the-flag platform.
 
+**Production instance:** [https://ctf.duca.au](https://ctf.duca.au)
+
 ## Important: individual play only
 
 This platform is built for **individual participants**. Each person registers with their own account, submits flags under that account, and appears on leaderboards as an individual.
 
-**Teams are not a feature of this project.** There is no team registration, team scoring, team leaderboards, or shared team accounts. If you run a group activity, each student still needs their own login. Organisers may allow informal collaboration on challenges (see [General Rules](/rules)), but the platform always records solves per user.
+**Teams are not a feature of this project.** There is no team registration, team scoring, team leaderboards, or shared team accounts. If you run a group activity, each student still needs their own login. Organisers may allow informal collaboration on challenges (see [General Rules](https://ctf.duca.au/rules)), but the platform always records solves per user.
 
 ---
 
@@ -24,12 +26,16 @@ This platform is built for **individual participants**. Each person registers wi
 
 ### For organisers (start here)
 
+Admin panel: [https://ctf.duca.au/admin](https://ctf.duca.au/admin)
+
 1. [Terminology](./admin.md#terminology) — competitions, challenges, flags, solves, and more
 2. [Running a trimester CTF](./admin.md#running-a-trimester-ctf) — end-to-end playbook for DUCA events
 3. [Admin panel sections](./admin.md#admin-panel) — what each screen does
 4. [Getting admin access](./admin.md#getting-admin-access)
 
 ### For players
+
+Production site: [https://ctf.duca.au](https://ctf.duca.au)
 
 1. [Creating an account & logging in](./users.md#account-and-login)
 2. [Playing challenges](./users.md#playing-challenges)
@@ -60,3 +66,4 @@ This platform is built for **individual participants**. Each person registers wi
 DUCA typically runs **one or two CTF events per university trimester**. On this platform, each of those events is set up as a **competition**: a scheduled container with its own challenges, leaderboard, writeups, and rules window.
 
 All times in the admin panel and player UI use **Australia/Sydney (AEST/AEDT)**.
+ 

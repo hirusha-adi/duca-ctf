@@ -4,6 +4,8 @@ Technical documentation for developers and operators working on the DUCA CTF pla
 
 For organiser workflows (creating competitions, running trimester CTFs), see the [admin guide](./admin.md). For player-facing behaviour, see the [user guide](./users.md).
 
+**Production instance:** [https://ctf.duca.au](https://ctf.duca.au)
+
 ## Individual play only
 
 The data model tracks **users**, not teams. There is no `Team` table, team APIs, or team UI. Leaderboards and solves aggregate per `User`. Do not plan features assuming team registration or team scores without significant new development.
@@ -180,6 +182,8 @@ Does **not** seed competitions, challenges, or users.
 
 ## Production deployment
 
+The live site is served at **[https://ctf.duca.au](https://ctf.duca.au)** via Caddy on the `intranet_1` Docker network.
+
 Full operator steps are in the root [README](../README.md#deployment-guide). Summary:
 
 ### Stack
@@ -215,9 +219,13 @@ Startup (`docker-entrypoint.sh`): `prisma migrate deploy` → purge activity log
 Forward headers in Caddy so telemetry and solve logs show real client IPs:
 
 ```caddyfile
-reverse_proxy hirusha-duca-ctf-web:3000 {
-    header_up X-Forwarded-For {remote_ip}
-    header_up X-Real-IP {remote_ip}
+ctf.duca.au {
+    reverse_proxy hirusha-duca-ctf-web:3000 {
+        header_up X-Forwarded-For {remote_ip}
+        header_up X-Real-IP {remote_ip}
+        header_up X-Forwarded-Proto {scheme}
+        header_up Host {host}
+    }
 }
 ```
 
