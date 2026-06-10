@@ -4,6 +4,19 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ![](./docs/images/home_image.png)
 
+**Individual play only.** This platform is for solo participants — each person has their own account, solves, and leaderboard entry. **Teams are not a feature of this project** (no team registration, team scores, or team leaderboards).
+
+## Documentation
+
+Full guides live in [`docs/`](./docs/README.md):
+
+| Guide | Audience |
+|-------|----------|
+| [docs/README.md](./docs/README.md) | Documentation index |
+| [docs/admin.md](./docs/admin.md) | **DUCA staff** — running trimester CTFs, competitions, challenges, support |
+| [docs/users.md](./docs/users.md) | Players — login, challenges, leaderboards, writeups |
+| [docs/developers.md](./docs/developers.md) | Developers — setup, deployment, architecture |
+| [docs/architechture.md](./docs/architechture.md) | System design deep-dive |
 
 ## Features
 
@@ -18,7 +31,7 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ## Stack
 
-[Click here](./docs/architechture.md) to explore the system design / architechture.
+See [architecture](./docs/architechture.md) and the [developer guide](./docs/developers.md) for system design.
 
 | Layer | Technology |
 |-------|------------|
@@ -29,6 +42,8 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 | Production proxy | Caddy (external, via `intranet_1` Docker network) |
 
 ## Development guide
+
+Step-by-step detail: [docs/developers.md](./docs/developers.md). Organiser workflows: [docs/admin.md](./docs/admin.md).
 
 ### Prerequisites
 

@@ -2,13 +2,15 @@
 
 This document describes how the DUCA CTF platform is structured, how its major subsystems interact, and how it is deployed in production.
 
+See also the [documentation index](./README.md), [admin guide](./admin.md), and [developer guide](./developers.md).
+
 ![](./images/architechture_all.png)
 
 
 ## Overview
 
 
-DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. It is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). There is no separate API server or background worker process — API routes, server components, and SSE streams all run inside the same Next.js process.
+DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. Play is **individual only** — there is no team model in the schema or UI. It is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). There is no separate API server or background worker process — API routes, server components, and SSE streams all run inside the same Next.js process.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
