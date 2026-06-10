@@ -34,12 +34,20 @@ export async function Navbar() {
               </Link>
             ))}
             {user && (
-              <Link
-                href="/support"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Support
-              </Link>
+              <>
+                <Link
+                  href="/user"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Account
+                </Link>
+                <Link
+                  href="/support"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Support
+                </Link>
+              </>
             )}
             {user?.role === "ADMIN" && (
               <Link
@@ -56,9 +64,12 @@ export async function Navbar() {
           {user ? (
             <>
               <div className="hidden items-center gap-2 md:flex">
-                <span className="text-sm text-muted-foreground">
+                <Link
+                  href="/user"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   {user.name || user.email}
-                </span>
+                </Link>
                 <NavbarPoints />
               </div>
               <NavbarPoints className="md:hidden" />

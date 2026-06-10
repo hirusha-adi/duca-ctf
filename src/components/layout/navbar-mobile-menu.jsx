@@ -27,6 +27,7 @@ export function NavbarMobileMenu({ links, user }) {
 
   const menuLinks = [
     ...links,
+    ...(user ? [{ href: "/user", label: "Account" }] : []),
     ...(user ? [{ href: "/support", label: "Support" }] : []),
     ...(user?.role === "ADMIN"
       ? [{ href: "/admin", label: "Admin", primary: true }]
@@ -56,7 +57,14 @@ export function NavbarMobileMenu({ links, user }) {
           <nav className="fixed inset-x-0 top-14 z-50 border-b border-border bg-background px-4 py-3 shadow-lg">
             {user && (
               <p className="mb-3 border-b border-border pb-3 text-sm text-muted-foreground">
-                Logged in as {user.name || user.email}
+                Logged in as{" "}
+                <Link
+                  href="/user"
+                  className="text-foreground hover:text-primary hover:underline"
+                  onClick={() => setOpen(false)}
+                >
+                  {user.name || user.email}
+                </Link>
               </p>
             )}
             <ul className="space-y-1">
