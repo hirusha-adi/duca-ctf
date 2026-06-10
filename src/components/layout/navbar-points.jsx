@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function NavbarPoints() {
+export function NavbarPoints({ className }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,7 +41,12 @@ export function NavbarPoints() {
 
   if (loading && !summary) {
     return (
-      <span className="hidden h-4 w-12 animate-pulse rounded bg-muted sm:inline-block" />
+      <span
+        className={cn(
+          "inline-block h-4 w-12 animate-pulse rounded bg-muted",
+          className ?? "hidden sm:inline-block"
+        )}
+      />
     );
   }
 
@@ -52,7 +57,7 @@ export function NavbarPoints() {
     : summary.overallTotal;
 
   return (
-    <div className="group relative hidden sm:block">
+    <div className={cn("group relative", className ?? "hidden sm:block")}>
       <button
         type="button"
         className={cn(
