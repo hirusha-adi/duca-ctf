@@ -3,6 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
+  serverExternalPackages: ["pg", "pg-connection-string", "@prisma/adapter-pg"],
   images: {
     remotePatterns: [],
   },
