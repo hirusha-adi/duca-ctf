@@ -117,6 +117,7 @@ npm run make-admin -- user@example.com
 | `npm run db:migrate` | Prisma migrate dev |
 | `npm run db:migrate:deploy` | Apply migrations (production) |
 | `npm run db:seed` | Seed categories + system site pages |
+| `npm run db:seed:test` | **Dev only** — sample competitions, challenges, submissions (`--force` to re-randomize) |
 | `npm run db:studio` | Prisma Studio |
 | `npm run db:purge-activity` | Delete expired activity logs |
 | `npm run make-admin` | Promote user to admin |
