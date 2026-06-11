@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { requireAdmin } from "@/lib/auth";
+import { getUploadFileExtension } from "@/lib/upload-files";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 
@@ -28,11 +29,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
     }
 
+    const ext = getUploadFileExtension(file.type);
+    if (!ext) {
+      return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+    }
+
     const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
     const writeupDir = path.join(process.cwd(), uploadDir, "writeups");
     await mkdir(writeupDir, { recursive: true });
 
-    const ext = file.name.split(".").pop() || "png";
     const filename = `${uuidv4()}.${ext}`;
     const filepath = path.join(writeupDir, filename);
 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
+import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { checkRateLimit } from "./rate-limit";
@@ -71,7 +72,7 @@ export async function requireAdmin() {
 }
 
 export function generateOtp() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(randomInt(100000, 1000000));
 }
 
 export async function createLoginCode(userId, code) {

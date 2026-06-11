@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import { getUploadFileExtension } from "./upload-files";
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -28,11 +29,15 @@ export async function saveSupportUpload(file) {
     throw new Error("FILE_TOO_LARGE");
   }
 
+  const ext = getUploadFileExtension(file.type);
+  if (!ext) {
+    throw new Error("INVALID_TYPE");
+  }
+
   const uploadDir = process.env.UPLOAD_DIR || "public/uploads";
   const supportDir = path.join(process.cwd(), uploadDir, "support");
   await mkdir(supportDir, { recursive: true });
 
-  const ext = file.name.split(".").pop() || "bin";
   const filename = `${uuidv4()}.${ext}`;
   const filepath = path.join(supportDir, filename);
 
