@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Lock, Menu } from "lucide-react";
+import { Lock } from "lucide-react";
 import { NavbarPoints } from "@/components/layout/navbar-points";
+import { NavbarMobileMenu } from "@/components/layout/navbar-mobile-menu";
 
 const navLinks = [
   { href: "/competitions", label: "Competitions" },
@@ -33,12 +34,20 @@ export async function Navbar() {
               </Link>
             ))}
             {user && (
-              <Link
-                href="/support"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Support
-              </Link>
+              <>
+                <Link
+                  href="/user"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Account
+                </Link>
+                <Link
+                  href="/support"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Support
+                </Link>
+              </>
             )}
             {user?.role === "ADMIN" && (
               <Link
@@ -54,13 +63,17 @@ export async function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <div className="hidden items-center gap-2 sm:flex">
-                <span className="text-sm text-muted-foreground">
+              <div className="hidden items-center gap-2 md:flex">
+                <Link
+                  href="/user"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
                   {user.name || user.email}
-                </span>
+                </Link>
                 <NavbarPoints />
               </div>
-              <form action="/api/auth/logout" method="POST">
+              <NavbarPoints className="md:hidden" />
+              <form action="/api/auth/logout" method="POST" className="hidden md:block">
                 <Button type="submit" variant="outline" size="sm">
                   Logout
                 </Button>
@@ -71,9 +84,14 @@ export async function Navbar() {
               <Link href="/login">Login</Link>
             </Button>
           )}
-          <button className="md:hidden text-muted-foreground" aria-label="Menu">
-            <Menu className="h-5 w-5" />
-          </button>
+          <NavbarMobileMenu
+            links={navLinks}
+            user={
+              user
+                ? { name: user.name, email: user.email, role: user.role }
+                : null
+            }
+          />
         </div>
       </div>
     </header>

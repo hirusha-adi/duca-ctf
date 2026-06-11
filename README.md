@@ -2,8 +2,23 @@
 
 Capture-the-flag platform for the [Deakin University Cybersecurity Association](https://duca.au/) (DUCA).
 
+**Production:** [https://ctf.duca.au](https://ctf.duca.au)
+
 ![](./docs/images/home_image.png)
 
+**Individual play only.** This platform is for solo participants — each person has their own account, solves, and leaderboard entry. **Teams are not a feature of this project** (no team registration, team scores, or team leaderboards).
+
+## Documentation
+
+Full guides live in [`docs/`](./docs/README.md):
+
+| Guide | Audience |
+|-------|----------|
+| [docs/README.md](./docs/README.md) | Documentation index |
+| [docs/admin.md](./docs/admin.md) | **DUCA staff** — running trimester CTFs, competitions, challenges, support |
+| [docs/users.md](./docs/users.md) | Players — login, challenges, leaderboards, writeups |
+| [docs/developers.md](./docs/developers.md) | Developers — setup, deployment, architecture |
+| [docs/architechture.md](./docs/architechture.md) | System design deep-dive |
 
 ## Features
 
@@ -18,7 +33,7 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 
 ## Stack
 
-[Click here](./docs/architechture.md) to explore the system design / architechture.
+See [architecture](./docs/architechture.md) and the [developer guide](./docs/developers.md) for system design.
 
 | Layer | Technology |
 |-------|------------|
@@ -29,6 +44,8 @@ Capture-the-flag platform for the [Deakin University Cybersecurity Association](
 | Production proxy | Caddy (external, via `intranet_1` Docker network) |
 
 ## Development guide
+
+Step-by-step detail: [docs/developers.md](./docs/developers.md). Organiser workflows: [docs/admin.md](./docs/admin.md).
 
 ### Prerequisites
 
@@ -147,7 +164,7 @@ sudo chown -R $USER:$USER data backups
 - Docker and Docker Compose v2 on the host
 - External Docker network `intranet_1` (shared with Caddy)
 - SMTP credentials
-- DNS + TLS handled by Caddy
+- DNS for `ctf.duca.au` + TLS handled by Caddy
 
 Create the shared network once if it does not exist:
 
@@ -218,7 +235,7 @@ sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web \
 Caddy must be attached to `intranet_1` so it can reach the web container by service name:
 
 ```caddyfile
-ctf.example.com {
+ctf.duca.au {
     reverse_proxy hirusha-duca-ctf-web:3000 {
         # Forward the visitor's public IP to the app for telemetry and solve logging
         header_up X-Forwarded-For {remote_ip}
@@ -244,7 +261,7 @@ Caddy is the only service that should reach `hirusha-duca-ctf-web` on `intranet_
 ```bash
 # Quick header check from inside the intranet_1 network (optional)
 sudo docker run --rm --network intranet_1 curlimages/curl:latest \
-  -sI -H "Host: ctf.example.com" http://hirusha-duca-ctf-web:3000/ | grep -i forwarded
+  -sI -H "Host: ctf.duca.au" http://hirusha-duca-ctf-web:3000/ | grep -i forwarded
 ```
 
 If IPs still show as `127.0.0.1`:

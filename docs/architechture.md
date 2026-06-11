@@ -2,24 +2,28 @@
 
 This document describes how the DUCA CTF platform is structured, how its major subsystems interact, and how it is deployed in production.
 
+See also the [documentation index](./README.md), [admin guide](./admin.md), and [developer guide](./developers.md).
+
+**Production instance:** [https://ctf.duca.au](https://ctf.duca.au)
+
 ![](./images/architechture_all.png)
 
 
 ## Overview
 
 
-DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. It is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). There is no separate API server or background worker process — API routes, server components, and SSE streams all run inside the same Next.js process.
+DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. Play is **individual only** — there is no team model in the schema or UI. It is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). There is no separate API server or background worker process — API routes, server components, and SSE streams all run inside the same Next.js process.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         Browser / Client                            │
-│  Server Components (SSR)  ·  Client Components  ·  EventSource SSE │
+│  Server Components (SSR)  ·  Client Components  ·  EventSource SSE  │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 │ HTTPS (production via Caddy)
 ┌───────────────────────────────▼─────────────────────────────────────┐
 │                    hirusha-duca-ctf-web (Next.js 15)                │
 │  App Router pages  ·  API routes  ·  iron-session  ·  Prisma ORM    │
-└───────┬─────────────────────────────────────┬─────────────────────┘
+└───────┬─────────────────────────────────────┬───────────────────────┘
         │                                     │
         │ hirusha-duca-ctf-net                │ Redis pub/sub + INCR
         ▼                                     ▼
@@ -271,7 +275,7 @@ Admin unsolve
 
 ## Support chat
 
-Users create tickets at `/support`. Admins manage all tickets at `/admin/chats`.
+Users create tickets at [https://ctf.duca.au/support](https://ctf.duca.au/support). Admins manage all tickets at [https://ctf.duca.au/admin/chats](https://ctf.duca.au/admin/chats).
 
 ```
 SupportTicket
@@ -294,8 +298,8 @@ SupportTicket
 
 Static content pages (rules, terms, privacy) and custom admin-created pages are stored in the `SitePage` table.
 
-- System pages live at `/rules`, `/terms`, `/privacy`.
-- Custom pages live at `/pages/[slug]`.
+- System pages live at [ctf.duca.au/rules](https://ctf.duca.au/rules), [terms](https://ctf.duca.au/terms), [privacy](https://ctf.duca.au/privacy).
+- Custom pages live at `https://ctf.duca.au/pages/[slug]`.
 - Public reads are cached for 60 seconds via `unstable_cache` in `src/lib/site-pages.js` and ISR (`revalidate = 60`) on page routes.
 - Admin edits call `revalidateSitePages()` to bust cache tags and paths immediately.
 
@@ -325,26 +329,26 @@ Uploads are stored on the filesystem, not in the database.
 - Admin actions (save challenge, unsolve, site page edits, etc.)
 - Support-related events
 
-Admins browse logs at `/admin/telemetry` with filtering by user and action.
+Admins browse logs at [https://ctf.duca.au/admin/telemetry](https://ctf.duca.au/admin/telemetry) with filtering by user and action.
 
 ---
 
 ## Admin panel
 
-Server-rendered pages under `/admin` with client-side managers for CRUD:
+Server-rendered pages under [https://ctf.duca.au/admin](https://ctf.duca.au/admin) with client-side managers for CRUD:
 
-| Section | Path | Capabilities |
-|---------|------|-------------|
-| Dashboard | `/admin` | User/competition/challenge counts, recent activity |
-| Users | `/admin/users` | List, disable, view detail |
-| User detail | `/admin/user/[email]` | Solves, activity, unsolve |
-| Competitions | `/admin/competitions` | Create, edit, hide, schedule |
-| Challenges | `/admin/challenges` | Create, flags, points, hide, submit limits |
-| Writeups | `/admin/writeups` | Edit post-competition writeups |
-| Submissions | `/admin/submissions` | Flag attempt log, unsolve |
-| Site pages | `/admin/pages` | Edit rules/terms/privacy + custom pages |
-| Support | `/admin/chats` | All support tickets |
-| Telemetry | `/admin/telemetry` | Activity log browser |
+| Section | URL | Capabilities |
+|---------|-----|-------------|
+| Dashboard | [ctf.duca.au/admin](https://ctf.duca.au/admin) | User/competition/challenge counts, recent activity |
+| Users | [ctf.duca.au/admin/users](https://ctf.duca.au/admin/users) | List, disable, view detail |
+| User detail | `ctf.duca.au/admin/user/[email]` | Solves, activity, unsolve |
+| Competitions | [ctf.duca.au/admin/competitions](https://ctf.duca.au/admin/competitions) | Create, edit, hide, schedule |
+| Challenges | [ctf.duca.au/admin/challenges](https://ctf.duca.au/admin/challenges) | Create, flags, points, hide, submit limits |
+| Writeups | [ctf.duca.au/admin/writeups](https://ctf.duca.au/admin/writeups) | Edit post-competition writeups |
+| Submissions | [ctf.duca.au/admin/submissions](https://ctf.duca.au/admin/submissions) | Flag attempt log, unsolve |
+| Site pages | [ctf.duca.au/admin/pages](https://ctf.duca.au/admin/pages) | Edit rules/terms/privacy + custom pages |
+| Support | [ctf.duca.au/admin/chats](https://ctf.duca.au/admin/chats) | All support tickets |
+| Telemetry | [ctf.duca.au/admin/telemetry](https://ctf.duca.au/admin/telemetry) | Activity log browser |
 
 Admin promotion is CLI-only: `node scripts/make-admin.js user@example.com`.
 
@@ -410,9 +414,9 @@ POST /api/auth/verify-code
 Internet
    │
    ▼
-┌─────────┐     intranet_1      ┌─────────────────────┐
+┌─────────┐     intranet_1      ┌──────────────────────┐
 │  Caddy  │ ──────────────────► │ hirusha-duca-ctf-web │
-└─────────┘                     └──────────┬──────────┘
+└─────────┘                     └──────────┬───────────┘
                                            │ hirusha-duca-ctf-net
                               ┌────────────┴────────────┐
                               ▼                         ▼
@@ -422,8 +426,13 @@ Internet
 Caddy config example:
 
 ```caddyfile
-ctf.example.com {
-    reverse_proxy hirusha-duca-ctf-web:3000
+ctf.duca.au {
+    reverse_proxy hirusha-duca-ctf-web:3000 {
+        header_up X-Forwarded-For {remote_ip}
+        header_up X-Real-IP {remote_ip}
+        header_up X-Forwarded-Proto {scheme}
+        header_up Host {host}
+    }
 }
 ```
 
