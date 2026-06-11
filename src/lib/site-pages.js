@@ -78,6 +78,8 @@ export async function getSitePage(slug) {
 }
 
 async function fetchPublicSitePages() {
+  await ensureDefaultSitePages();
+
   const pages = await prisma.sitePage.findMany({
     where: {
       OR: [{ isSystem: true }, { isSystem: false, hidden: false }],
@@ -95,6 +97,8 @@ async function fetchPublicSitePages() {
 }
 
 async function fetchPublicSitePage(slug) {
+  await ensureDefaultSitePages();
+
   const page = await prisma.sitePage.findUnique({ where: { slug } });
   if (!page) return null;
   if (!page.isSystem && page.hidden) return null;

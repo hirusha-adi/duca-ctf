@@ -11,5 +11,8 @@ su-exec nextjs env NODE_PATH=/app/prisma-cli/node_modules \
 echo "Purging activity logs older than ${ACTIVITY_LOG_RETENTION_DAYS:-14} days..."
 su-exec nextjs node /app/scripts/purge-activity-logs.js
 
+echo "Seeding default categories and site pages..."
+su-exec nextjs node /app/prisma/seed.js
+
 echo "Starting application..."
 exec su-exec nextjs "$@"

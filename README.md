@@ -214,23 +214,23 @@ And also fill all of the other values.
 sudo docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-On startup the web container runs `prisma migrate deploy` then starts Next.js.
+On startup the web container runs `prisma migrate deploy`, seeds default categories and site pages (rules, terms, privacy), then starts Next.js.
 
-### 3. Seed (first deploy only)
-
-```bash
-sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web \
-  node prisma/seed.js
-```
-
-### 4. Promote an admin
+### 3. Promote an admin
 
 ```bash
 sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web \
   node scripts/make-admin.js user@example.com
 ```
 
-### 5. Configure Caddy
+To re-run the seed manually (idempotent):
+
+```bash
+sudo docker compose -f docker-compose.prod.yml exec hirusha-duca-ctf-web \
+  node prisma/seed.js
+```
+
+### 4. Configure Caddy
 
 Caddy must be attached to `intranet_1` so it can reach the web container by service name:
 
