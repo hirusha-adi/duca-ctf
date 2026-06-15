@@ -1,29 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  LayoutDashboard,
-  Users,
-  Trophy,
-  Puzzle,
-  FileText,
-  Activity,
-  History,
-  ScrollText,
-  MessagesSquare,
-} from "lucide-react";
-
-const adminLinks = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/admin/competitions", label: "Competitions", icon: Trophy },
-  { href: "/admin/challenges", label: "Challenges", icon: Puzzle },
-  { href: "/admin/submissions", label: "Submissions", icon: History },
-  { href: "/admin/chats", label: "Support Chats", icon: MessagesSquare },
-  { href: "/admin/writeups", label: "Writeups", icon: FileText },
-  { href: "/admin/pages", label: "Pages", icon: ScrollText },
-  { href: "/admin/telemetry", label: "Telemetry", icon: Activity },
-];
+import { adminLinks } from "@/lib/admin-links";
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 
 export default async function AdminLayout({ children }) {
   const user = await getCurrentUser();
@@ -51,7 +30,10 @@ export default async function AdminLayout({ children }) {
           ))}
         </nav>
       </aside>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        <AdminMobileNav />
+        {children}
+      </div>
     </div>
   );
 }
