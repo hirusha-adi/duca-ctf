@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -40,6 +41,10 @@ export async function PUT(request, { params }) {
       action: TELEMETRY_ACTIONS.ADMIN_ACTION,
       metadata: { action: "save_writeup", challengeId },
     });
+
+    revalidatePath("/admin/writeups");
+    revalidatePath("/writeups");
+    revalidatePath(`/writeups/${challengeId}`);
 
     return NextResponse.json({ writeup });
   } catch (err) {

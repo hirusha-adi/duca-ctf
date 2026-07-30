@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +17,7 @@ import { toEditorHtml } from "@/lib/content-format";
 import { cn } from "@/lib/utils";
 
 export function AdminWriteupsManager({ competitions }) {
+  const router = useRouter();
   const [competitionId, setCompetitionId] = useState("");
   const [challengeId, setChallengeId] = useState("");
   const [content, setContent] = useState("");
@@ -90,11 +92,12 @@ export function AdminWriteupsManager({ competitions }) {
         return;
       }
       setSaveState("saved");
+      router.refresh();
     } catch {
       setSaveState("error");
       setError("Save failed");
     }
-  }, [challengeId]);
+  }, [challengeId, router]);
 
   useEffect(() => {
     latestContentRef.current = content;
