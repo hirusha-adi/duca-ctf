@@ -16,6 +16,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://duca:duca@localhost:5432/duca_ctf"
+# Required while Next.js evaluates server modules; runtime uses the secret from .env.
+ENV SESSION_SECRET="build-only-placeholder-not-used-at-runtime"
 ENV BUGSINK_DSN=$BUGSINK_DSN
 RUN npm run build
 
