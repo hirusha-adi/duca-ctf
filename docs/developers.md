@@ -187,6 +187,8 @@ The live site is served at **[https://ctf.duca.au](https://ctf.duca.au)** via Ca
 
 Full operator steps are in the root [README](../README.md#deployment-guide). Summary:
 
+Optional personal challenge hosting is documented separately in the [hosting guide](./hosting.md). It covers the existing rootless Docker daemon, cgroup v2 limits, `--profile hosting`, trusted runner/watchdog, restricted Compose bundles and Caddy's `/instance-terminal` route. Run that deployment validation before enabling hosted challenges for players.
+
 ### Stack
 
 | Container | Role |
@@ -286,6 +288,7 @@ Keep uploads outside `public/` so static file serving cannot bypass support atta
 
 ## Related documentation
 
+- [Hosting guide](./hosting.md)
 - [Documentation index](./README.md)
 - [Admin guide](./admin.md)
 - [User guide](./users.md)

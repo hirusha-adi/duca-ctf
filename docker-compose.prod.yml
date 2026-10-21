@@ -59,6 +59,8 @@ services:
       UPLOAD_DIR: /app/data/uploads
       ACTIVITY_LOG_RETENTION_DAYS: ${ACTIVITY_LOG_RETENTION_DAYS:-14}
       BUGSINK_DSN: ${BUGSINK_DSN:-}
+      HOSTED_RUNNER_URL: http://hirusha-duca-ctf-runner:3110
+      HOSTED_RUNNER_SECRET: ${HOSTED_RUNNER_SECRET:-}
     volumes:
       - ./data/uploads:/app/data/uploads
     depends_on:
@@ -98,6 +100,73 @@ services:
       hirusha-duca-ctf-postgres:
         condition: service_healthy
     entrypoint: ["/bin/sh", "/usr/local/bin/backup-entrypoint.sh"]
+
+  # Enable with: docker compose -f docker-compose.prod.yml --profile hosting up -d --build
+  # This builds one trusted networking helper; challenge images are always pulled.
+  hirusha-duca-ctf-guard-image:
+    profiles: ["hosting"]
+    build:
+      context: ./runner/guard
+    image: duca-ctf-instance-guard:latest
+    entrypoint: ["/bin/true"]
+    network_mode: none
+    restart: "no"
+
+  hirusha-duca-ctf-runner:
+    profiles: ["hosting"]
+    image: hirusha-duca-ctf-web:latest
+    restart: unless-stopped
+    entrypoint: ["node", "runner/server.mjs"]
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-duca}:${POSTGRES_PASSWORD}@hirusha-duca-ctf-postgres:5432/${POSTGRES_DB:-duca_ctf}
+      SESSION_SECRET: ${SESSION_SECRET}
+      HOSTED_RUNNER_SECRET: ${HOSTED_RUNNER_SECRET:-}
+      APP_ORIGIN: ${APP_ORIGIN:-https://ctf.duca.au}
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+      HOSTED_DATA_DIR: /app/data/hosted
+      HOSTED_HOST_DATA_DIR: ${HOSTED_HOST_DATA_DIR:-}
+      HOSTED_GUARD_IMAGE: duca-ctf-instance-guard:latest
+      HOSTED_MIN_FREE_DISK_MB: ${HOSTED_MIN_FREE_DISK_MB:-5120}
+      HOSTED_NETWORK_CIDR: ${HOSTED_NETWORK_CIDR:-10.210.0.0/16}
+    volumes:
+      - ${HOSTED_DOCKER_SOCKET:-/run/user/1000/docker.sock}:/var/run/docker.sock
+      - ./data/hosted:/app/data/hosted
+    networks: [hirusha-duca-ctf-net, intranet_1]
+    expose: ["3110"]
+    depends_on:
+      hirusha-duca-ctf-web:
+        condition: service_healthy
+      hirusha-duca-ctf-guard-image:
+        condition: service_completed_successfully
+    logging:
+      driver: local
+      options: { max-size: "10m", max-file: "3" }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3110/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+
+  hirusha-duca-ctf-instance-watchdog:
+    profiles: ["hosting"]
+    image: hirusha-duca-ctf-web:latest
+    restart: unless-stopped
+    entrypoint: ["node", "runner/watchdog.mjs"]
+    environment:
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
+    volumes:
+      - ${HOSTED_DOCKER_SOCKET:-/run/user/1000/docker.sock}:/var/run/docker.sock
+    network_mode: none
+    depends_on:
+      hirusha-duca-ctf-web:
+        condition: service_healthy
+    logging:
+      driver: local
+      options: { max-size: "5m", max-file: "2" }
+    healthcheck:
+      disable: true
 
 networks:
   hirusha-duca-ctf-net:

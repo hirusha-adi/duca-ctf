@@ -51,5 +51,6 @@ next-env.d.ts
 !/data/redis/.gitkeep
 /data/uploads/*
 !/data/uploads/.gitkeep
+/data/hosted/
 /backups/*
 !/backups/.gitkeep

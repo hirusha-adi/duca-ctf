@@ -57,6 +57,10 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma/create-client.js ./prisma/create-client.js
 COPY --from=builder /app/src/lib/default-site-pages.js ./src/lib/default-site-pages.js
 COPY --from=builder /app/src/lib/activity-retention.js ./src/lib/activity-retention.js
+COPY --from=builder /app/src/lib/hosting ./src/lib/hosting
+COPY --from=builder /app/runner ./runner
+# WebSocket transport is used by the separate runner, outside Next's tracing.
+COPY --from=builder /app/node_modules/ws ./node_modules/ws
 
 COPY --from=migrator /app/node_modules ./prisma-cli/node_modules
 

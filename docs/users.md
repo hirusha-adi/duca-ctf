@@ -113,6 +113,18 @@ You can unlock new hints while the challenge is open. Previously unlocked hints 
 
 ---
 
+## Personal challenge instances
+
+Hosted challenges show **Your challenge instance** on the challenge page. **Start instance** creates your personal environment and displays its connection details when ready. HTTP/HTTPS endpoints open as links; TCP/UDP services show the host and port to use with your tools.
+
+An instance lasts **two hours**, including startup time. **Stop** keeps its files and databases until the original expiry; **Resume** continues with those files and the same deadline. **Recreate** permanently deletes the old instance's work and starts a fresh two-hour instance after confirmation. Expiry removes its files and databases.
+
+If organisers disable starts, existing instances keep their deadline, but you cannot start, resume or recreate until hosting is enabled again. A capacity error means the shared resource pool or instance slots are full; try again later or contact support. Each player has a separate instance for each hosted challenge.
+
+Challenge endpoints are directly reachable public services. Only attack your assigned challenge endpoints within the event's rules. For the complete operator reference, see [Hosted challenges](./hosting.md).
+
+---
+
 ## Leaderboards and live solves
 
 ### Leaderboard

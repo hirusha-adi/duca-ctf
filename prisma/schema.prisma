@@ -42,6 +42,9 @@ model User {
   supportTickets   SupportTicket[]
   supportMessages  SupportMessage[]
   hintUnlocks      HintUnlock[]
+  hostedInstances HostedInstance[]
+  instanceEvents  InstanceEvent[]
+  terminalSessions InstanceTerminalSession[]
 }
 
 model LoginCode {
@@ -105,6 +108,12 @@ model Challenge {
   hints             Hint[]
   prerequisites     ChallengePrerequisite[] @relation("requires")
   requiredBy        ChallengePrerequisite[] @relation("requiredBy")
+  hosted            Boolean       @default(false)
+  hostingEnabled    Boolean       @default(false)
+  hostingInternetEnabled Boolean  @default(false)
+  hostingTemplate   Json?
+  hostingVersion    Int           @default(0)
+  hostedInstances   HostedInstance[]
 
   @@unique([competitionId, slug])
   @@index([competitionId])
@@ -262,4 +271,87 @@ model SupportMessage {
 
   @@index([ticketId])
   @@index([createdAt])
+}
+
+model HostingSettings {
+  id                   String @id @default("default")
+  maxInstances         Int    @default(500)
+  memoryBudgetMb       Int    @default(4096)
+  cpuBudgetMillicores   Int    @default(2000)
+  publicHost           String @default("")
+  portRangeStart       Int    @default(20000)
+  portRangeEnd         Int    @default(29999)
+  updatedAt            DateTime @updatedAt
+}
+
+model HostedInstance {
+  id                    String   @id @default(cuid())
+  userId                String
+  challengeId           String
+  state                 String   @default("QUEUED")
+  desiredState          String   @default("RUNNING")
+  generation            Int      @default(1)
+  observedGeneration    Int      @default(0)
+  template              Json
+  templateVersion       Int
+  internetEnabled       Boolean  @default(false)
+  resourceMemoryMb      Int
+  resourceCpuMillicores  Int
+  endpoints             Json     @default("[]")
+  containers            Json     @default("[]")
+  expiresAt             DateTime
+  operationToken        String?
+  operationLeaseUntil   DateTime?
+  lastError             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  challenge             Challenge @relation(fields: [challengeId], references: [id], onDelete: Restrict)
+  events                InstanceEvent[]
+  terminalSessions      InstanceTerminalSession[]
+
+  @@unique([userId, challengeId])
+  @@index([desiredState, state])
+  @@index([expiresAt])
+}
+
+model InstanceEvent {
+  id          String   @id @default(cuid())
+  instanceId  String?
+  generation  Int?
+  actorId     String?
+  action      String
+  level       String   @default("INFO")
+  message     String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  instance    HostedInstance? @relation(fields: [instanceId], references: [id], onDelete: SetNull)
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([instanceId, createdAt])
+  @@index([createdAt])
+}
+
+model RegistryCredential {
+  id                String   @id @default(cuid())
+  server            String   @unique
+  username          String
+  passwordEncrypted String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model InstanceTerminalSession {
+  id          String   @id @default(uuid())
+  instanceId  String
+  userId      String
+  service     String
+  generation  Int
+  tokenHash   String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  instance    HostedInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }

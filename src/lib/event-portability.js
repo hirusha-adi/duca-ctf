@@ -98,6 +98,13 @@ async function createChallenges(tx, competition, challenges, { forceHidden = fal
       description: challenge.description, descriptionFormat: challenge.descriptionFormat,
       startAt: new Date(competition.startAt.getTime() + challenge.releaseOffsetSeconds * 1000),
       submitLimit: challenge.submitLimit, hidden: forceHidden || challenge.hidden,
+      ...(challenge.hosting ? {
+        hosted: challenge.hosting.hosted,
+        // Reused definitions always need an explicit organizer opt-in to run.
+        hostingEnabled: false,
+        hostingInternetEnabled: challenge.hosting.internetEnabled,
+        ...(challenge.hosting.template ? { hostingTemplate: challenge.hosting.template, hostingVersion: 1 } : {}),
+      } : {}),
       flags: { create: challenge.flags }, hints: { create: challenge.hints },
       ...(challenge.writeup ? { writeup: { create: challenge.writeup } } : {}),
     }, select: { id: true, title: true, slug: true } });

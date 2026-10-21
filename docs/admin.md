@@ -108,6 +108,7 @@ Open **Admin** at [https://ctf.duca.au/admin](https://ctf.duca.au/admin) from th
 | Competitions | [ctf.duca.au/admin/competitions](https://ctf.duca.au/admin/competitions) | Create and schedule events |
 | Challenges | [ctf.duca.au/admin/challenges](https://ctf.duca.au/admin/challenges) | Create tasks, flags, points, categories |
 | Challenge bank | [ctf.duca.au/admin/challenge-bank](https://ctf.duca.au/admin/challenge-bank) | Save reusable challenge snapshots, import/export YAML, deploy into events |
+| Hosting | [ctf.duca.au/admin/hosting](https://ctf.duca.au/admin/hosting) | [Hosted challenge templates and instances](./hosting.md), capacity, registries, logs and terminals |
 | Submissions | [ctf.duca.au/admin/submissions](https://ctf.duca.au/admin/submissions) | Flag attempt history, unsolve |
 | Support Chats | [ctf.duca.au/admin/chats](https://ctf.duca.au/admin/chats) | All player support tickets |
 | Writeups | [ctf.duca.au/admin/writeups](https://ctf.duca.au/admin/writeups) | Post-event solution content |
@@ -410,6 +411,7 @@ Use with care in production — prefer admin UI for day-to-day tasks.
 
 ## Related documentation
 
+- [Hosted challenges](./hosting.md) — templates, private registries, instance controls, logs, terminals and deployment
 - [User guide](./users.md) — what players see
 - [Developer guide](./developers.md) — deployment and technical setup
 - [Architecture](./architechture.md) — scoring, auth, SSE internals

@@ -19,7 +19,13 @@ export default async function LeaderboardPage({ searchParams }) {
     overall = await getCompetitionLeaderboard(competitionId);
     challenges = await prisma.challenge.findMany({
       where: { competitionId, hidden: false },
-      include: { category: true },
+      // This data crosses a client component boundary. Hosting templates can
+      // contain flag answers and registry/configuration secrets.
+      select: {
+        id: true, title: true, points: true,
+        category: { select: { id: true, name: true } },
+        flags: { where: { retired: false }, select: { id: true } },
+      },
       orderBy: { title: "asc" },
     });
 

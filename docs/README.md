@@ -19,6 +19,7 @@ This platform is built for **individual participants**. Each person registers wi
 | **DUCA staff & organisers** | [Admin guide](./admin.md) | Running trimester CTFs, competitions, challenges, users, support, telemetry, and production operations |
 | **Players** | [User guide](./users.md) | Logging in, playing challenges, leaderboards, writeups, and support |
 | **Developers & operators** | [Developer guide](./developers.md) | Local setup, architecture, deployment, database, and scripts |
+| **Hosted challenge operators** | [Hosting guide](./hosting.md) | Existing rootless Docker engine, Compose bundles, instance capacity and lifecycle |
 
 ---
 
@@ -32,6 +33,7 @@ Admin panel: [https://ctf.duca.au/admin](https://ctf.duca.au/admin)
 2. [Running a trimester CTF](./admin.md#running-a-trimester-ctf) — end-to-end playbook for DUCA events
 3. [Admin panel sections](./admin.md#admin-panel) — what each screen does
 4. [Getting admin access](./admin.md#getting-admin-access)
+5. [Hosted challenges](./hosting.md) — deployment, templates, instance controls and capacity
 
 ### For players
 
@@ -66,4 +68,4 @@ Production site: [https://ctf.duca.au](https://ctf.duca.au)
 DUCA typically runs **one or two CTF events per university trimester**. On this platform, each of those events is set up as a **competition**: a scheduled container with its own challenges, leaderboard, writeups, and rules window.
 
 All times in the admin panel and player UI use **Australia/Sydney (AEST/AEDT)**.
- 
+

@@ -20,6 +20,7 @@ import { getUserChallengeSubmissionStats } from "@/lib/submissions";
 import { getChallengePrerequisiteStatus } from "@/lib/challenge-access";
 import { serializePlayerHints } from "@/lib/challenge-rules.mjs";
 import { ChallengeHints } from "@/components/challenge/challenge-hints";
+import { HostedInstance } from "@/components/challenge/hosted-instance";
 
 export default async function ChallengePage({ params }) {
   const { id } = await params;
@@ -147,6 +148,8 @@ export default async function ChallengePage({ params }) {
       )}
 
       {isAdmin && !prerequisiteStatus.unlocked && <p className="mb-6 rounded-md border border-border p-3 text-sm text-muted-foreground">Admin preview: players must solve the prerequisite challenges before viewing this content.</p>}
+
+      {challenge.hosted && <HostedInstance challengeId={id} canStart={available} />}
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
         <Card className={cn("flex flex-col", isUpcoming && "opacity-60")}>

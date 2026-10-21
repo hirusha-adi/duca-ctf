@@ -18,6 +18,7 @@ Full guides live in [`docs/`](./docs/README.md):
 | [docs/admin.md](./docs/admin.md) | **DUCA staff** — running trimester CTFs, competitions, challenges, support |
 | [docs/users.md](./docs/users.md) | Players — login, challenges, leaderboards, writeups |
 | [docs/developers.md](./docs/developers.md) | Developers — setup, deployment, architecture |
+| [docs/hosting.md](./docs/hosting.md) | Operators — rootless hosted challenge deployment and instance management |
 | [docs/architechture.md](./docs/architechture.md) | System design deep-dive |
 
 ## Features
@@ -27,6 +28,7 @@ Full guides live in [`docs/`](./docs/README.md):
 - Multi-flag challenges with static scoring
 - Free/paid hints and prerequisite challenge unlocks
 - Event cloning, reusable challenge bank, and DUCA YAML import/export with images
+- Optional personal hosted challenge instances with Compose bundles, two-hour leases, admin logs and terminals
 - Live solves feed (SSE) and leaderboards
 - Support chat with admin inbox
 - Post-competition writeups (markdown or rich text)
@@ -126,6 +128,8 @@ npm run make-admin -- user@example.com
 | `npm run db:restore` | Restore DB from latest backup (prod compose) |
 
 ## Deployment guide
+
+Optional hosted challenges use the existing rootless Docker engine through a trusted runner and watchdog. Follow the [hosted challenge deployment guide](./docs/hosting.md) for the `hosting` Compose profile, capacity settings, public challenge ports and Caddy's terminal route.
 
 Production runs as four Docker containers behind Caddy. PostgreSQL and Redis communicate with the web app on a private bridge network (`hirusha-duca-ctf-net`). Only the web container also joins the external `intranet_1` network so Caddy can reverse-proxy to it. All persistent data is stored in bind mounts under `./data/` and `./backups/`.
 
@@ -296,7 +300,7 @@ networks:
 
 </details>
 
-The web container is **not** published to the host — Caddy is the only public entry point.
+The web container is **not** published to the host; Caddy is the web application's public entry point. Optional [hosted challenges](./docs/hosting.md) also publish their assigned challenge ports directly on the host.
 
 ### Production services
 

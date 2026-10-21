@@ -1,4 +1,5 @@
 import { parseDocument, stringify, visit } from "yaml";
+import { normalizeHostingTemplate } from "./hosting/template.mjs";
 
 export const PORTABILITY_FORMAT = "duca-ctf";
 export const PORTABILITY_VERSION = 1;
@@ -65,7 +66,7 @@ export function isoDate(value, label = "Date") {
 }
 
 export function validatePortableChallenge(value) {
-  object(value, "challenge", ["key", "title", "category", "points", "description", "descriptionFormat", "releaseOffsetSeconds", "submitLimit", "hidden", "flags", "hints", "prerequisites", "writeup"]);
+  object(value, "challenge", ["key", "title", "category", "points", "description", "descriptionFormat", "releaseOffsetSeconds", "submitLimit", "hidden", "flags", "hints", "prerequisites", "writeup", "hosting"]);
   const flags = list(value.flags, "Flags", 20).map((flag) => {
     object(flag, "flag", ["value", "label"]);
     return { value: text(flag.value, "Flag value", { max: 4096, trim: true, required: true }), label: text(flag.label, "Flag label", { max: 200, fallback: "" }) };
@@ -85,6 +86,19 @@ export function validatePortableChallenge(value) {
       return { url: text(image.url, "Image URL", { max: 2048, required: true }), ...(image.alt !== undefined ? { alt: text(image.alt, "Image alt", { max: 1000 }) } : {}), ...(image.name !== undefined ? { name: text(image.name, "Image name", { max: 200 }) } : {}) };
     }) };
   }
+  let hosting;
+  if (value.hosting !== undefined) {
+    object(value.hosting, "hosting", ["hosted", "enabled", "internetEnabled", "template"]);
+    const hosted = boolean(value.hosting.hosted, "Hosted", false);
+    const enabled = boolean(value.hosting.enabled, "Hosting enabled", false);
+    let template = null;
+    if (value.hosting.template != null) {
+      try { template = normalizeHostingTemplate(value.hosting.template); }
+      catch (error) { fail(`Invalid hosting template: ${error.message}`); }
+    }
+    if (enabled && (!hosted || !template)) fail("Enabled hosting requires a hosted challenge and a valid template");
+    hosting = { hosted, enabled, internetEnabled: boolean(value.hosting.internetEnabled, "Hosting internet enabled", false), template };
+  }
   return {
     key: key(value.key, "Challenge key"), title: text(value.title, "Challenge title", { max: 200, trim: true, required: true }),
     category: text(value.category, "Category", { max: 200, trim: true, required: true }), points: integer(value.points, "Points"),
@@ -93,6 +107,7 @@ export function validatePortableChallenge(value) {
     submitLimit: value.submitLimit == null ? null : integer(value.submitLimit, "Submission limit", { min: 1 }),
     hidden: boolean(value.hidden, "Hidden"), flags, hints,
     prerequisites: [...new Set(list(value.prerequisites, "Prerequisites", 100).map((item) => key(item, "Prerequisite key")))], writeup,
+    ...(hosting ? { hosting } : {}),
   };
 }
 
@@ -152,7 +167,12 @@ export function validatePortableDocument(value, expectedKind) {
   });
   if (totalAssetBytes > MAX_TOTAL_ASSET_BYTES) fail("Assets must total at most 20 MB");
   const result = { format: PORTABILITY_FORMAT, version: PORTABILITY_VERSION, kind: value.kind, ...(competition ? { competition } : { rootKey }), challenges, assets };
-  const metadataBytes = Buffer.byteLength(JSON.stringify({ ...result, assets: [] }));
+  const hostingFileBytes = challenges.reduce((total, challenge) => total + Object.values(challenge.hosting?.template?.files || {}).reduce((sum, file) => sum + Buffer.from(file, "base64").length, 0), 0);
+  if (hostingFileBytes + totalAssetBytes > MAX_TOTAL_ASSET_BYTES) fail("Hosting files and image assets must total at most 20 MB");
+  const metadataChallenges = challenges.map((challenge) => challenge.hosting?.template ? {
+    ...challenge, hosting: { ...challenge.hosting, template: { ...challenge.hosting.template, files: {} } },
+  } : challenge);
+  const metadataBytes = Buffer.byteLength(JSON.stringify({ ...result, challenges: metadataChallenges, assets: [] }));
   if (metadataBytes > 2 * 1024 * 1024) fail("Event text and definitions must total at most 2 MB");
   return result;
 }
@@ -191,6 +211,7 @@ export function portableChallengeFromRecord(challenge, competitionStartAt, keyBy
       return mapped;
     }),
     writeup: challenge.writeup ? { content: challenge.writeup.content, contentFormat: challenge.writeup.contentFormat, images: challenge.writeup.images || [] } : null,
+    ...(challenge.hosted || challenge.hostingTemplate ? { hosting: { hosted: !!challenge.hosted, enabled: !!challenge.hostingEnabled, internetEnabled: !!challenge.hostingInternetEnabled, template: challenge.hostingTemplate ?? null } } : {}),
   };
 }
 

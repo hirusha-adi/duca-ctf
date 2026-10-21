@@ -12,7 +12,7 @@ See also the [documentation index](./README.md), [admin guide](./admin.md), and 
 ## Overview
 
 
-DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. Play is **individual only** — there is no team model in the schema or UI. It is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). There is no separate API server or background worker process — API routes, server components, and SSE streams all run inside the same Next.js process.
+DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin University Cybersecurity Association. Play is **individual only** — there is no team model in the schema or UI. Its core is a **monolithic Next.js application** backed by **PostgreSQL** (persistent state) and **Redis** (shared ephemeral state). API routes, server components and SSE streams run inside the Next.js process. Optional hosted challenges add a separate trusted runner and expiry watchdog connected to the existing rootless Docker engine.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -34,6 +34,27 @@ DUCA CTF is a self-hosted capture-the-flag platform built for the Deakin Univers
 ```
 
 ---
+
+## Optional hosted challenge runtime
+
+```mermaid
+flowchart LR
+  Player[Player browser] --> Web[Next.js authorization and instance APIs]
+  Web --> DB[(PostgreSQL desired state and leases)]
+  Runner[Trusted instance runner] --> DB
+  Runner --> Docker[Existing rootless Docker daemon]
+  Watchdog[Independent expiry watchdog] --> Docker
+  Docker --> Guard[Per-service network guards]
+  Guard --> App[Per-player application containers]
+  Player -->|Allocated public TCP/UDP ports| Guard
+  Admin[Admin browser] -->|Single-use terminal ticket through Caddy| Runner
+```
+
+The website has no Docker socket. It atomically authorizes one instance per player/challenge, reserves capacity and records lifecycle commands. The runner claims generation-scoped leases, pulls immutable image IDs and reconciles Docker resources. Instance snapshots preserve configuration across Stop/Resume; Recreate removes the previous generation and resets the two-hour deadline. Registry credentials are encrypted separately from reusable challenge definitions.
+
+Each instance owns a private bridge network and named volumes. Trusted guards publish the allocated ports and apply outbound policy; application containers share their guard's network namespace with all capabilities dropped. The guard revokes network access at expiry, and the independent watchdog removes expired, labelled Docker resources without consulting PostgreSQL. This keeps expiry independent of website availability while leaving unrelated daemon resources alone.
+
+See [Hosted challenges](./hosting.md) for deployment, accepted Compose options, capacity budgets, filesystem limitations and operational controls.
 
 ## Technology stack
 
