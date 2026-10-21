@@ -37,6 +37,8 @@ const emptyForm = {
   useSubmitLimit: false,
   submitLimit: 10,
   flags: [{ value: "", label: "", id: null }],
+  hints: [],
+  prerequisiteIds: [],
 };
 
 function getCompetition(competitions, id) {
@@ -61,6 +63,7 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       competitionId,
       startAt: comp?.startAtLocal || "",
       useCustomStart: false,
+      prerequisiteIds: [],
     }));
   }
 
@@ -91,6 +94,14 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
       ...form,
       flags: form.flags.filter((_, i) => i !== index),
     });
+  }
+
+  function updateHint(index, field, value) {
+    setForm((current) => ({ ...current, hints: current.hints.map((hint, i) => i === index ? { ...hint, [field]: value } : hint) }));
+  }
+
+  function togglePrerequisite(id, checked) {
+    setForm((current) => ({ ...current, prerequisiteIds: checked ? [...current.prerequisiteIds, id] : current.prerequisiteIds.filter((value) => value !== id) }));
   }
 
   async function createCategory() {
@@ -196,6 +207,8 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
         label: f.label || "",
         value: f.value || "",
       })),
+      hints: (ch.hints || []).map((hint) => ({ id: hint.id, title: hint.title, content: toEditorHtml(hint.content, hint.contentFormat), contentFormat: "RICHTEXT", cost: hint.cost })),
+      prerequisiteIds: ch.prerequisiteIds || [],
     });
   }
 
@@ -404,6 +417,41 @@ export function AdminChallengesManager({ challenges: initial, competitions, cate
                 onCheckedChange={(hidden) => setForm({ ...form, hidden })}
               />
               <Label>Hidden</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prerequisite challenges</Label>
+              <p className="text-sm text-muted-foreground">Players must solve every selected challenge before viewing this challenge or submitting flags.</p>
+              <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-border p-3">
+                {challenges.filter((challenge) => challenge.competitionId === form.competitionId && challenge.id !== editing).map((challenge) => (
+                  <label key={challenge.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="checkbox" checked={form.prerequisiteIds.includes(challenge.id)} onChange={(event) => togglePrerequisite(challenge.id, event.target.checked)} />
+                    <span>{challenge.title}{challenge.hidden ? " (hidden)" : ""}</span>
+                  </label>
+                ))}
+                {!challenges.some((challenge) => challenge.competitionId === form.competitionId && challenge.id !== editing) && <p className="text-sm text-muted-foreground">No other challenges in this competition.</p>}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Hints</Label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setForm((current) => ({ ...current, hints: [...current.hints, { id: null, clientKey: crypto.randomUUID(), title: "", content: "", contentFormat: "RICHTEXT", cost: 0 }] }))}>Add Hint</Button>
+              </div>
+              <p className="text-sm text-muted-foreground">Free hints cost 0. Paid hints deduct points once from the player&apos;s score in this competition. Previously paid costs are kept when a hint is edited or removed.</p>
+              {form.hints.map((hint, index) => (
+                <div key={hint.id || hint.clientKey} className="space-y-3 rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">Hint {index + 1}</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm((current) => ({ ...current, hints: current.hints.filter((_, i) => i !== index) }))}>Remove</Button>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1"><Label>Title</Label><Input value={hint.title} maxLength={200} placeholder={`Hint ${index + 1}`} onChange={(event) => updateHint(index, "title", event.target.value)} /></div>
+                    <div className="space-y-1"><Label>Cost in points</Label><Input type="number" min={0} max={1000000} step={1} required value={hint.cost} onChange={(event) => updateHint(index, "cost", Number(event.target.value))} /></div>
+                  </div>
+                  <div className="space-y-1"><Label>Hint content</Label><RichTextEditor key={`${editing || "new"}-${hint.id || hint.clientKey}`} content={hint.content} onChange={(content) => updateHint(index, "content", content)} placeholder="Write a hint…" variant="compact" /></div>
+                </div>
+              ))}
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}

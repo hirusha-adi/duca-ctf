@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { notifySolvesRefresh } from "@/lib/solves-notify";
+import { revokeChallengeSolve } from "@/lib/revoke-challenge-solve.mjs";
 
 export async function POST(request) {
   try {
@@ -14,47 +15,11 @@ export async function POST(request) {
 
     const { userId, challengeId } = body;
 
-    if (!userId || !challengeId) {
+    if (typeof userId !== "string" || !userId || typeof challengeId !== "string" || !challengeId) {
       return NextResponse.json({ error: "userId and challengeId required" }, { status: 400 });
     }
 
-    const [user, challenge, existingSolves] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, email: true, name: true },
-      }),
-      prisma.challenge.findUnique({
-        where: { id: challengeId },
-        select: {
-          id: true,
-          title: true,
-          categoryId: true,
-          competitionId: true,
-          category: { select: { name: true } },
-          competition: { select: { name: true } },
-        },
-      }),
-      prisma.solve.findMany({
-        where: { userId, challengeId },
-        select: { id: true, pointsAwarded: true },
-      }),
-    ]);
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-    if (!challenge) {
-      return NextResponse.json({ error: "Challenge not found" }, { status: 404 });
-    }
-    if (existingSolves.length === 0) {
-      return NextResponse.json({ error: "User has not solved this challenge" }, { status: 404 });
-    }
-
-    const pointsRemoved = existingSolves.reduce((sum, s) => sum + s.pointsAwarded, 0);
-
-    const result = await prisma.solve.deleteMany({
-      where: { userId, challengeId },
-    });
+    const { user, challenge, pointsRemoved, result } = await revokeChallengeSolve(prisma, userId, challengeId);
 
     const revertMetadata = {
       challengeId,
@@ -102,6 +67,9 @@ export async function POST(request) {
   } catch (err) {
     if (err.message === "UNAUTHORIZED" || err.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (err.status) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
     }
     return NextResponse.json({ error: "Unsolve failed" }, { status: 500 });
   }

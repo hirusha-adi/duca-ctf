@@ -101,6 +101,15 @@ Submissions are blocked when:
 - The challenge is hidden or not yet unlocked (before its start time)
 - You have reached the challenge's submission limit
 - You are not logged in
+- You have not solved all prerequisite challenges
+
+### Hints and prerequisites
+
+Some challenges require you to solve other challenges in the same competition first. The competition list shows a prerequisite lock; open the challenge to see which requirements remain. Its description, hints, and submission form become available after every prerequisite is solved and its release time arrives.
+
+Hints appear on the challenge page with their cost. **Unlock** reveals a hint permanently for your account. Free hints cost nothing; paid hints deduct the displayed amount from your score in that competition. You need enough points in that competition, and each hint is charged only once. Cancelling the confirmation leaves it locked. Changing or removing a hint later does not change a charge you already paid.
+
+You can unlock new hints while the challenge is open. Previously unlocked hints remain readable after the event ends. Organisers can preview hints without purchasing them.
 
 ---
 
@@ -110,11 +119,13 @@ Submissions are blocked when:
 
 **Leaderboard** at [https://ctf.duca.au/leaderboard](https://ctf.duca.au/leaderboard) shows rankings per competition:
 
-- Total points per player (individual scores only — no teams)
+- Earned challenge points minus paid hint costs per player (individual scores only — no teams)
 - Tie-break: earlier last solve wins
 - Per-challenge solve order (first blood)
 
 Rankings use your display name when set, otherwise your email.
+
+Earned points keep their original value when an organiser edits the challenge's points or accepted flags, or hides the challenge. An explicit admin **Unsolve** action can still revoke earned points. Hint purchases remain recorded after an unsolve, so an organiser correction can temporarily leave a negative net score.
 
 ### Live solves
 
@@ -144,6 +155,8 @@ If you need help during an event — a broken challenge, a scoring question, or 
 4. Chat with DUCA organisers in the ticket thread.
 
 You can only see your own tickets. Organisers reply as **DUCA Support**. Tickets can be open or closed; you cannot send new messages on a closed ticket.
+
+Support attachment links require a login and access to the ticket, including when opened directly in another tab.
 
 ---
 

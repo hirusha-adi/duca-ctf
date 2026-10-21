@@ -10,9 +10,12 @@ export default async function AdminChallengesPage() {
         competition: { select: { id: true, name: true, startAt: true, endAt: true } },
         category: { select: { id: true, name: true } },
         flags: {
+          where: { retired: false },
           orderBy: { order: "asc" },
           select: { id: true, label: true, order: true, value: true },
         },
+        hints: { where: { retired: false }, orderBy: { order: "asc" } },
+        prerequisites: { select: { requiredChallengeId: true } },
         _count: { select: { solves: true } },
       },
     }),
@@ -33,6 +36,7 @@ export default async function AdminChallengesPage() {
     startAtLocal: toDatetimeLocalInAEST(ch.startAt),
     startAtFormatted: formatInAEST(ch.startAt),
     flagCount: ch.flags.length,
+    prerequisiteIds: ch.prerequisites.map((entry) => entry.requiredChallengeId),
     competitionStartAt: ch.competition.startAt,
   }));
 

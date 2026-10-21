@@ -6,6 +6,8 @@ import { parseDatetimeLocalToUTC } from "@/lib/timezone";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { deleteCompetitionConfiguration } from "@/lib/delete-challenge-configuration.mjs";
+import { notifySolvesRefresh } from "@/lib/solves-notify";
 
 export async function PATCH(request, { params }) {
   try {
@@ -66,7 +68,7 @@ export async function DELETE(request, { params }) {
     const ip = getClientIp(request);
     const userAgent = getUserAgent(request);
 
-    await prisma.competition.delete({ where: { id } });
+    await deleteCompetitionConfiguration(prisma, id);
 
     await logActivity({
       userId: admin.id,
@@ -75,12 +77,14 @@ export async function DELETE(request, { params }) {
       action: TELEMETRY_ACTIONS.ADMIN_ACTION,
       metadata: { action: "delete_competition", competitionId: id },
     });
+    notifySolvesRefresh();
 
     return NextResponse.json({ success: true });
   } catch (err) {
     if (err.message === "UNAUTHORIZED" || err.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    if (err.status) return NextResponse.json({ error: err.message }, { status: err.status });
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

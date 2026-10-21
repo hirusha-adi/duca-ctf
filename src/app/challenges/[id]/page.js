@@ -17,10 +17,14 @@ import { logActivity, getClientIpFromHeaders } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { headers } from "next/headers";
 import { getUserChallengeSubmissionStats } from "@/lib/submissions";
+import { getChallengePrerequisiteStatus } from "@/lib/challenge-access";
+import { serializePlayerHints } from "@/lib/challenge-rules.mjs";
+import { ChallengeHints } from "@/components/challenge/challenge-hints";
 
 export default async function ChallengePage({ params }) {
   const { id } = await params;
   const user = await requirePageAuth(`/challenges/${id}`);
+  const isAdmin = user.role === "ADMIN";
 
   const challenge = await prisma.challenge.findUnique({
     where: { id },
@@ -28,15 +32,49 @@ export default async function ChallengePage({ params }) {
       category: true,
       competition: true,
       flags: {
+        where: { retired: false },
         orderBy: { order: "asc" },
         select: { id: true, label: true, order: true },
       },
       writeup: { select: { id: true } },
+      hints: {
+        where: isAdmin ? { retired: false } : { OR: [{ retired: false }, { unlocks: { some: { userId: user.id } } }] },
+        orderBy: { order: "asc" },
+        include: { unlocks: { where: { userId: user.id }, select: { costPaid: true } } },
+      },
     },
   });
 
-  if (!challenge || challenge.hidden || challenge.competition.hidden) {
+  if (!challenge || (!isAdmin && (challenge.hidden || challenge.competition.hidden))) {
     notFound();
+  }
+
+  const prerequisiteStatus = await getChallengePrerequisiteStatus(user.id, id);
+  const ended = isCompetitionEnded(challenge.competition);
+  const isUpcoming = !ended && (isChallengeUpcoming(challenge) || new Date(challenge.competition.startAt) > new Date());
+  const available = isChallengeAvailable(challenge, challenge.competition) && prerequisiteStatus.unlocked;
+  if (!isAdmin && (isUpcoming || !prerequisiteStatus.unlocked)) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+        <Link href={`/competitions/${challenge.competition.slug}`} className="text-sm text-primary hover:underline">{challenge.competition.name}</Link>
+        <h1 className="text-2xl font-bold">{challenge.title}</h1>
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2 text-base"><Lock className="h-4 w-4" />Challenge locked</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            {isUpcoming && <Countdown targetDate={new Date(Math.max(new Date(challenge.startAt).getTime(), new Date(challenge.competition.startAt).getTime()))} label="Challenge unlocks in" refreshOnExpire />}
+            {!prerequisiteStatus.unlocked && <>
+              <p className="text-sm text-muted-foreground">Solve every prerequisite to unlock this challenge:</p>
+              <ul className="space-y-2 text-sm">
+                {prerequisiteStatus.requirements.map((requirement) => <li key={requirement.id}>
+                  {requirement.solved ? "✓ " : "○ "}
+                  {requirement.hidden ? "A prerequisite challenge has not been released yet" : <Link href={`/challenges/${requirement.id}`} className="text-primary hover:underline">{requirement.title}</Link>}
+                </li>)}
+              </ul>
+            </>}
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const headersList = await headers();
@@ -52,7 +90,8 @@ export default async function ChallengePage({ params }) {
 
   const [solves, submissionStats] = await Promise.all([
     prisma.solve.findMany({
-      where: { challengeId: id, pointsAwarded: { gt: 0 } },
+      where: { challengeId: id },
+      distinct: ["userId"],
       include: {
         user: { select: { id: true, name: true, email: true } },
       },
@@ -61,9 +100,6 @@ export default async function ChallengePage({ params }) {
     getUserChallengeSubmissionStats(user.id, id),
   ]);
 
-  const ended = isCompetitionEnded(challenge.competition);
-  const isUpcoming = !ended && isChallengeUpcoming(challenge);
-  const available = isChallengeAvailable(challenge, challenge.competition);
   const submissionLimitReached =
     challenge.submitLimit != null &&
     submissionStats &&
@@ -78,6 +114,7 @@ export default async function ChallengePage({ params }) {
         : "This challenge is not available for submission.";
   const solved = await userHasSolvedChallenge(user.id, id);
   const solvedFlagIds = await userSolvedFlags(user.id, id);
+  const playerHints = serializePlayerHints(challenge.hints, { preview: isAdmin });
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -108,6 +145,8 @@ export default async function ChallengePage({ params }) {
           </p>
         </div>
       )}
+
+      {isAdmin && !prerequisiteStatus.unlocked && <p className="mb-6 rounded-md border border-border p-3 text-sm text-muted-foreground">Admin preview: players must solve the prerequisite challenges before viewing this content.</p>}
 
       <div className="mb-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
         <Card className={cn("flex flex-col", isUpcoming && "opacity-60")}>
@@ -192,6 +231,8 @@ export default async function ChallengePage({ params }) {
           />
         </CardContent>
       </Card>
+
+      <ChallengeHints key={id} challengeId={id} hints={playerHints} canUnlock={available} preview={isAdmin} />
 
       {ended && challenge.writeup && (
         <Card>

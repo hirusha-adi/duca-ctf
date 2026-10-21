@@ -8,6 +8,7 @@ import {
 } from "@/lib/support";
 import { getSupportMessageCooldownRemaining } from "@/lib/support-rate-limit";
 import { notifySupportMessage } from "@/lib/support-notify";
+import { verifySupportUploadClaims } from "@/lib/support-upload-claims.mjs";
 
 export async function POST(request, { params }) {
   try {
@@ -38,6 +39,9 @@ export async function POST(request, { params }) {
     const message = typeof body.body === "string" ? body.body.trim() : "";
     const competitionId = body.competitionId || null;
     const challengeId = body.challengeId || null;
+    if (!verifySupportUploadClaims(body.attachments, user.id, process.env.SESSION_SECRET)) {
+      return NextResponse.json({ error: "Invalid attachment upload. Please upload the attachment again." }, { status: 400 });
+    }
     const attachments = normalizeAttachments(body.attachments);
 
     if (!message && attachments.length === 0) {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 function getTimeLeft(targetDate) {
   const diff = new Date(targetDate).getTime() - Date.now();
@@ -14,15 +15,23 @@ function getTimeLeft(targetDate) {
   return { days, hours, minutes, seconds };
 }
 
-export function Countdown({ targetDate, label = "Starts in" }) {
+export function Countdown({ targetDate, label = "Starts in", refreshOnExpire = false }) {
+  const router = useRouter();
+  const refreshed = useRef(false);
   const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(targetDate));
 
   useEffect(() => {
+    refreshed.current = false;
     const timer = setInterval(() => {
-      setTimeLeft(getTimeLeft(targetDate));
+      const remaining = getTimeLeft(targetDate);
+      setTimeLeft(remaining);
+      if (!remaining && refreshOnExpire && !refreshed.current) {
+        refreshed.current = true;
+        router.refresh();
+      }
     }, 1000);
     return () => clearInterval(timer);
-  }, [targetDate]);
+  }, [targetDate, refreshOnExpire, router]);
 
   if (!timeLeft) {
     return (

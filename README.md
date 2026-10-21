@@ -25,6 +25,8 @@ Full guides live in [`docs/`](./docs/README.md):
 - Passwordless email OTP authentication
 - Competitions with scheduled challenges and countdown timers
 - Multi-flag challenges with static scoring
+- Free/paid hints and prerequisite challenge unlocks
+- Event cloning, reusable challenge bank, and DUCA YAML import/export with images
 - Live solves feed (SSE) and leaderboards
 - Support chat with admin inbox
 - Post-competition writeups (markdown or rich text)
@@ -49,7 +51,7 @@ Step-by-step detail: [docs/developers.md](./docs/developers.md). Organiser workf
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24 LTS
 - Docker (for local PostgreSQL and Redis)
 - SMTP credentials for sending login codes
 

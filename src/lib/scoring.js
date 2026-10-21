@@ -1,12 +1,19 @@
 import { prisma } from "./db";
 import { getActiveCompetitions } from "./competitions";
+import { rankCompetitionScores } from "./leaderboard-ranking.mjs";
 
 export async function getUserTotalPoints(userId) {
-  const result = await prisma.solve.aggregate({
-    where: { userId, pointsAwarded: { gt: 0 } },
-    _sum: { pointsAwarded: true },
-  });
-  return result._sum.pointsAwarded ?? 0;
+  const [awards, hints] = await Promise.all([
+    prisma.solve.aggregate({
+      where: { userId, pointsAwarded: { gt: 0 } },
+      _sum: { pointsAwarded: true },
+    }),
+    prisma.hintUnlock.aggregate({
+      where: { userId },
+      _sum: { costPaid: true },
+    }),
+  ]);
+  return (awards._sum.pointsAwarded ?? 0) - (hints._sum.costPaid ?? 0);
 }
 
 export async function getUserPointsSummary(userId) {
@@ -35,47 +42,41 @@ export async function getUserPointsSummary(userId) {
 }
 
 export async function getUserScoreInCompetition(userId, competitionId) {
-  const solves = await prisma.solve.findMany({
-    where: {
-      userId,
-      pointsAwarded: { gt: 0 },
-      challenge: { competitionId, hidden: false },
-    },
-    select: { pointsAwarded: true },
-  });
-
-  return solves.reduce((sum, s) => sum + s.pointsAwarded, 0);
+  const [awards, hints] = await Promise.all([
+    prisma.solve.aggregate({
+      where: { userId, pointsAwarded: { gt: 0 }, challenge: { competitionId } },
+      _sum: { pointsAwarded: true },
+    }),
+    prisma.hintUnlock.aggregate({
+      where: { userId, hint: { challenge: { competitionId } } },
+      _sum: { costPaid: true },
+    }),
+  ]);
+  return (awards._sum.pointsAwarded ?? 0) - (hints._sum.costPaid ?? 0);
 }
 
 export async function getCompetitionLeaderboard(competitionId) {
-  const solves = await prisma.solve.findMany({
-    where: {
-      pointsAwarded: { gt: 0 },
-      challenge: { competitionId, hidden: false },
-    },
-    include: {
-      user: { select: { id: true, name: true, email: true } },
-    },
-    orderBy: { solvedAt: "asc" },
+  // Visibility is a presentation choice; it must not revoke earned points.
+  const [awards, hints] = await Promise.all([
+    prisma.solve.groupBy({
+      by: ["userId"],
+      where: { pointsAwarded: { gt: 0 }, challenge: { competitionId } },
+      _sum: { pointsAwarded: true },
+      _max: { solvedAt: true },
+    }),
+    prisma.hintUnlock.groupBy({
+      by: ["userId"],
+      where: { hint: { challenge: { competitionId } }, costPaid: { gt: 0 } },
+      _sum: { costPaid: true },
+    }),
+  ]);
+  const userIds = [...new Set([...awards, ...hints].map((row) => row.userId))];
+  if (userIds.length === 0) return [];
+  const users = await prisma.user.findMany({
+    where: { id: { in: userIds } },
+    select: { id: true, name: true, email: true },
   });
-
-  const scores = new Map();
-
-  for (const solve of solves) {
-    const existing = scores.get(solve.userId) || {
-      user: solve.user,
-      score: 0,
-      lastSolve: solve.solvedAt,
-    };
-    existing.score += solve.pointsAwarded;
-    existing.lastSolve = solve.solvedAt;
-    scores.set(solve.userId, existing);
-  }
-
-  return Array.from(scores.values()).sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return new Date(a.lastSolve) - new Date(b.lastSolve);
-  });
+  return rankCompetitionScores(awards, hints, users);
 }
 
 export async function getChallengeLeaderboard(challengeId) {
@@ -91,14 +92,14 @@ export async function getChallengeLeaderboard(challengeId) {
 
 export async function userHasSolvedChallenge(userId, challengeId) {
   const solve = await prisma.solve.findFirst({
-    where: { userId, challengeId, pointsAwarded: { gt: 0 } },
+    where: { userId, challengeId },
   });
   return !!solve;
 }
 
 export async function userSolvedFlags(userId, challengeId) {
   const solves = await prisma.solve.findMany({
-    where: { userId, challengeId },
+    where: { userId, challengeId, flag: { retired: false } },
     select: { flagId: true },
   });
   return new Set(solves.map((s) => s.flagId));

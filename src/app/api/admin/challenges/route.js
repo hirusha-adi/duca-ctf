@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { generateChallengeSlug } from "@/lib/slugs";
-import { hashFlag } from "@/lib/flags";
+import { hashFlag, prepareFlagChanges, flagSyncErrorMessage } from "@/lib/flags";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { resolveChallengeStartAt, challengeStartErrorMessage } from "@/lib/challenges";
 import { logActivity, getClientIp, getUserAgent } from "@/lib/telemetry";
 import { TELEMETRY_ACTIONS } from "@/lib/constants";
 import { parseSubmitLimit } from "@/lib/submissions";
+import { validateChallengePrerequisites, syncChallengePrerequisites } from "@/lib/challenge-access";
+import { validateChallengeHints, syncChallengeHints } from "@/lib/hints";
 
 export async function POST(request) {
   try {
@@ -28,6 +30,8 @@ export async function POST(request) {
       hidden,
       flags,
       submitLimit,
+      hints,
+      prerequisiteIds,
     } = body;
 
     if (!title || !competitionId || !categoryId) {
@@ -47,9 +51,11 @@ export async function POST(request) {
       );
     }
 
-    const validFlags = (flags || []).filter((f) => f.value?.trim());
-    if (validFlags.length === 0) {
-      return NextResponse.json({ error: "At least one flag required" }, { status: 400 });
+    let validFlags;
+    try {
+      validFlags = prepareFlagChanges(flags).flags;
+    } catch (error) {
+      return NextResponse.json({ error: flagSyncErrorMessage(error.message) }, { status: 400 });
     }
 
     const content =
@@ -57,32 +63,34 @@ export async function POST(request) {
 
     const slug = await generateChallengeSlug(title, competitionId);
 
-    const challenge = await prisma.challenge.create({
-      data: {
+    const parsedPoints = Number(points ?? 100);
+    if (!Number.isSafeInteger(parsedPoints) || parsedPoints < 0 || parsedPoints > 1000000000) {
+      return NextResponse.json({ error: "Points must be a whole number from 0 to 1,000,000,000." }, { status: 400 });
+    }
+    const preparedFlags = await Promise.all(validFlags.map(async (flag, order) => {
+      const normalized = flag.value.trim();
+      return { value: normalized, flagHash: await hashFlag(normalized), label: flag.label || "", order };
+    }));
+
+    const challenge = await prisma.$transaction(async (tx) => {
+      const validatedPrerequisites = await validateChallengePrerequisites(tx, { competitionId, prerequisiteIds: prerequisiteIds ?? [] });
+      const validatedHints = await validateChallengeHints(tx, null, hints ?? []);
+      const created = await tx.challenge.create({ data: {
         title,
         slug,
         competitionId,
         categoryId,
-        points: Number(points) || 100,
+        points: parsedPoints,
         description: content || "",
         descriptionFormat: descriptionFormat || "MARKDOWN",
         startAt: resolvedStartAt,
         submitLimit: parseSubmitLimit(submitLimit),
         hidden: hidden ?? false,
-        flags: {
-          create: await Promise.all(
-            validFlags.map(async (f, i) => {
-              const normalized = f.value.trim();
-              return {
-                value: normalized,
-                flagHash: await hashFlag(normalized),
-                label: f.label || "",
-                order: i,
-              };
-            })
-          ),
-        },
-      },
+        flags: { create: preparedFlags },
+      } });
+      await syncChallengeHints(tx, created.id, validatedHints);
+      await syncChallengePrerequisites(tx, created.id, validatedPrerequisites);
+      return created;
     });
 
     await logActivity({
@@ -98,6 +106,7 @@ export async function POST(request) {
     if (err.message === "UNAUTHORIZED" || err.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+    if (err.status) return NextResponse.json({ error: err.message }, { status: err.status });
     if (err.code === "P2002") {
       return NextResponse.json({ error: "Slug already exists in competition" }, { status: 400 });
     }

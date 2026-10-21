@@ -79,7 +79,7 @@ Dockerfile                # Standalone Next.js image
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24 LTS
 - Docker (PostgreSQL and Redis)
 - SMTP credentials for login codes
 
@@ -133,7 +133,7 @@ From `.env.example`:
 | `REDIS_URL` | Optional; omit for in-memory rate limits (single process) |
 | `SESSION_SECRET` | Cookie encryption (≥ 32 characters) |
 | `SMTP_*` | Login code email delivery |
-| `UPLOAD_DIR` | Upload storage (default `public/uploads`) |
+| `UPLOAD_DIR` | Upload storage (default `data/uploads`; production `/app/data/uploads`) |
 | `BUGSINK_DSN` | Optional error tracking |
 | `ACTIVITY_LOG_RETENTION_DAYS` | Activity log retention (default 14) |
 
@@ -259,6 +259,28 @@ npm run build
 ```
 
 Verify SMTP by sending a login code. Verify scoring with a test user account before trimester events.
+
+### Automated checks
+
+`npm test` runs the pure validation, score preservation, notification failure, upload, hint, and YAML portability tests. The HTTP integration suite is skipped unless all three `DUCA_TEST_*` settings below are provided. It creates and removes its own fixtures; use a separate migrated database and a separate app process, never production.
+
+```bash
+# Start the app with DATABASE_URL pointing to an isolated migrated test database,
+# SESSION_SECRET set to a test secret, SESSION_COOKIE_SECURE=false, and a temporary
+# absolute UPLOAD_DIR. Then run against that same app/database:
+DUCA_TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/duca_test \
+DUCA_TEST_BASE_URL=http://127.0.0.1:3000 \
+DUCA_TEST_SESSION_SECRET=your-test-session-secret-at-least-32-characters \
+npm test
+```
+
+The integration tests exercise concurrent flags and hint purchases, prerequisite enforcement, transactional edits, authenticated attachment delivery, cloning, image-bearing YAML round trips, and challenge bank deployment. Run `npm run build` with the dev server stopped because both use `.next`.
+
+### Upload storage and upgrades
+
+Both relative and absolute `UPLOAD_DIR` values resolve to one storage root. `/uploads/[...path]` serves files from that root at runtime; no Caddy file server or `public/` volume is needed. Support downloads check ticket ownership, and uploaded attachment claims bind each file to its uploader before it can be attached to a message. Image/editor URLs remain public.
+
+Keep uploads outside `public/` so static file serving cannot bypass support attachment access checks. Existing development installations using `public/uploads` should move its `writeups/` and `support/` directories into `data/uploads`, set `UPLOAD_DIR=data/uploads`, and remove the old publicly served copies. Keep filenames unchanged. Production already mounts `data/uploads` at `/app/data/uploads`; the application now writes directly to that mounted path. Re-upload any attachment left in an unsent composer across this upgrade. Back up this directory along with the database; existing SQL backup scripts do not include files.
 
 ---
 

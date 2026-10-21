@@ -41,6 +41,7 @@ model User {
   activityLogs     ActivityLog[]
   supportTickets   SupportTicket[]
   supportMessages  SupportMessage[]
+  hintUnlocks      HintUnlock[]
 }
 
 model LoginCode {
@@ -101,6 +102,9 @@ model Challenge {
   writeup           Writeup?
   supportTickets    SupportTicket[]
   supportMessages   SupportMessage[]
+  hints             Hint[]
+  prerequisites     ChallengePrerequisite[] @relation("requires")
+  requiredBy        ChallengePrerequisite[] @relation("requiredBy")
 
   @@unique([competitionId, slug])
   @@index([competitionId])
@@ -114,10 +118,58 @@ model Flag {
   value       String   @default("")
   label       String   @default("")
   order       Int      @default(0)
+  retired     Boolean  @default(false)
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   solves      Solve[]
 
   @@index([challengeId])
+}
+
+model Hint {
+  id            String        @id @default(cuid())
+  challengeId   String
+  title         String
+  content       String        @default("")
+  contentFormat ContentFormat @default(MARKDOWN)
+  cost          Int           @default(0)
+  order         Int           @default(0)
+  retired       Boolean       @default(false)
+  challenge     Challenge     @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  unlocks       HintUnlock[]
+
+  @@index([challengeId])
+}
+
+model HintUnlock {
+  id         String   @id @default(cuid())
+  userId     String
+  hintId     String
+  costPaid   Int      @default(0)
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hint       Hint     @relation(fields: [hintId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, hintId])
+  @@index([hintId])
+}
+
+model ChallengePrerequisite {
+  challengeId         String
+  requiredChallengeId String
+  challenge           Challenge @relation("requires", fields: [challengeId], references: [id], onDelete: Cascade)
+  requiredChallenge   Challenge @relation("requiredBy", fields: [requiredChallengeId], references: [id], onDelete: Restrict)
+
+  @@id([challengeId, requiredChallengeId])
+  @@index([requiredChallengeId])
+}
+
+model ChallengeBankEntry {
+  id           String   @id @default(cuid())
+  title        String
+  categoryName String
+  definition   Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model Solve {

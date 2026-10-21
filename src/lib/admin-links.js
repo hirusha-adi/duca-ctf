@@ -8,6 +8,7 @@ import {
   History,
   ScrollText,
   MessagesSquare,
+  Library,
 } from "lucide-react";
 
 export const adminLinks = [
@@ -15,6 +16,7 @@ export const adminLinks = [
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/competitions", label: "Competitions", icon: Trophy },
   { href: "/admin/challenges", label: "Challenges", icon: Puzzle },
+  { href: "/admin/challenge-bank", label: "Challenge Bank", icon: Library },
   { href: "/admin/submissions", label: "Submissions", icon: History },
   { href: "/admin/chats", label: "Support Chats", icon: MessagesSquare },
   { href: "/admin/writeups", label: "Writeups", icon: FileText },

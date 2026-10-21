@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { scheduleNotification } from "./background-notifications";
 import {
   publishInboxUpdates,
   publishTicketEvent,
@@ -22,7 +23,7 @@ const messageNotifyInclude = {
   ticket: { select: { userId: true } },
 };
 
-export async function notifySupportMessage(ticketId, messageId, preloadedMessage = null) {
+async function publishSupportMessage(ticketId, messageId, preloadedMessage) {
   const message =
     preloadedMessage ??
     (await prisma.supportMessage.findUnique({
@@ -47,7 +48,7 @@ export async function notifySupportMessage(ticketId, messageId, preloadedMessage
   }
 }
 
-export async function notifySupportTicketUpdate(ticketId) {
+async function publishSupportTicketUpdate(ticketId) {
   const ticket = await prisma.supportTicket.findUnique({
     where: { id: ticketId },
     include: ticketSummaryInclude,
@@ -58,4 +59,14 @@ export async function notifySupportTicketUpdate(ticketId) {
   const summary = serializeTicketSummary(ticket);
   await publishTicketEvent(ticketId, { type: "ticket", ticket: summary });
   await publishInboxUpdates(summary, ticket.userId);
+}
+
+export function notifySupportMessage(ticketId, messageId, preloadedMessage = null) {
+  scheduleNotification("Support message", () =>
+    publishSupportMessage(ticketId, messageId, preloadedMessage)
+  );
+}
+
+export function notifySupportTicketUpdate(ticketId) {
+  scheduleNotification("Support ticket", () => publishSupportTicketUpdate(ticketId));
 }

@@ -1,16 +1,20 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { saveSupportUpload } from "@/lib/support-upload";
+import { createSupportUploadToken } from "@/lib/support-upload-claims.mjs";
 
 export async function POST(request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
 
     const formData = await request.formData();
     const file = formData.get("file");
     const attachment = await saveSupportUpload(file);
 
-    return NextResponse.json(attachment);
+    return NextResponse.json({
+      ...attachment,
+      uploadToken: createSupportUploadToken(user.id, attachment.url, process.env.SESSION_SECRET),
+    });
   } catch (err) {
     if (err.message === "UNAUTHORIZED") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

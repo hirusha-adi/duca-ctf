@@ -9,6 +9,7 @@ import { isChallengeAvailable, isCompetitionEnded } from "@/lib/competitions";
 import { isChallengeUpcoming } from "@/lib/challenges";
 import { cn } from "@/lib/utils";
 import { ContentRenderer } from "@/components/challenge/content-renderer";
+import { getPrerequisiteProgress } from "@/lib/challenge-rules.mjs";
 
 export default async function CompetitionPage({ params }) {
   const { slug } = await params;
@@ -22,7 +23,8 @@ export default async function CompetitionPage({ params }) {
         include: {
           category: true,
           writeup: { select: { id: true } },
-          _count: { select: { flags: true } },
+          _count: { select: { flags: { where: { retired: false } } } },
+          prerequisites: { select: { requiredChallengeId: true } },
         },
         orderBy: [{ category: { name: "asc" } }, { points: "desc" }],
       },
@@ -35,6 +37,7 @@ export default async function CompetitionPage({ params }) {
 
   const solvedMap = {};
   const flagProgressMap = {};
+  const prerequisiteProgressMap = {};
 
   if (user) {
     for (const ch of competition.challenges) {
@@ -48,20 +51,22 @@ export default async function CompetitionPage({ params }) {
     const userSolves = await prisma.solve.findMany({
       where: {
         userId: user.id,
-        challengeId: { in: competition.challenges.map((c) => c.id) },
+        challenge: { competitionId: competition.id },
       },
-      select: { challengeId: true, pointsAwarded: true },
+      select: { challengeId: true, flag: { select: { retired: true } } },
     });
 
     for (const solve of userSolves) {
       const progress = flagProgressMap[solve.challengeId];
       if (!progress) continue;
-      progress.captured += 1;
-      if (solve.pointsAwarded > 0) progress.solved = true;
+      if (!solve.flag.retired) progress.captured += 1;
+      progress.solved = true;
     }
 
+    const solvedIds = new Set(userSolves.map((solve) => solve.challengeId));
     for (const ch of competition.challenges) {
       solvedMap[ch.id] = flagProgressMap[ch.id].solved;
+      prerequisiteProgressMap[ch.id] = getPrerequisiteProgress(ch.prerequisites.map((entry) => entry.requiredChallengeId), solvedIds);
     }
   }
 
@@ -124,6 +129,8 @@ export default async function CompetitionPage({ params }) {
                       const solved = solvedMap[ch.id];
                       const progress = flagProgressMap[ch.id];
                       const multiFlag = progress && progress.total > 1;
+                      const prerequisiteProgress = prerequisiteProgressMap[ch.id];
+                      const prerequisitesLocked = prerequisiteProgress && prerequisiteProgress.solved < prerequisiteProgress.total;
                       const available = isChallengeAvailable(ch, competition);
                       const upcoming = !ended && isChallengeUpcoming(ch);
 
@@ -170,7 +177,11 @@ export default async function CompetitionPage({ params }) {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            {solved ? (
+                            {prerequisitesLocked ? (
+                              <span className="flex items-center gap-1 text-muted-foreground"><Lock className="h-4 w-4" />Prerequisites · {prerequisiteProgress.solved}/{prerequisiteProgress.total}</span>
+                            ) : !user && ch.prerequisites.length > 0 ? (
+                              <span className="text-muted-foreground">Requires {ch.prerequisites.length} prerequisite{ch.prerequisites.length === 1 ? "" : "s"}</span>
+                            ) : solved ? (
                               <span className="flex items-center gap-1 text-primary">
                                 <CheckCircle2 className="h-4 w-4" />
                                 Solved

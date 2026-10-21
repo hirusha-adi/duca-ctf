@@ -142,8 +142,18 @@ SitePage (rules, terms, privacy + custom pages)
 - Each challenge has a static `points` value and one or more `Flag` records.
 - A user earns full challenge points on their **first correct flag** for that challenge.
 - Additional flags on the same challenge award **0 points** but are still recorded as solves.
-- Leaderboards aggregate `pointsAwarded > 0` per user within a competition.
+- Leaderboards aggregate saved `pointsAwarded` per user within a competition, then subtract historical `HintUnlock.costPaid` values. Hiding or editing a challenge does not revalue past awards.
 - Admins can **unsolve** a user+challenge pair, deleting all flag solves and points for that challenge.
+- Removed flags and hints are retired; historical solves and hint purchases remain. Challenge edits validate flags, hints and prerequisites before committing a single transaction. Solved challenges cannot move between events.
+- Submission, hint-purchase and unsolve transactions take the same challenge-then-user PostgreSQL advisory locks. A player's first accepted flag awards the challenge value once, including concurrent requests.
+
+### Progression and reusable content
+
+`Hint` stores ordered free/paid hints. `HintUnlock` is unique per user/hint and captures the paid cost; changing a hint's price never changes prior deductions. Purchases check available points in the same competition under the shared locks. Retired hints preserve access for existing purchasers.
+
+`ChallengePrerequisite` stores a directed graph within each competition. Configuration rejects self-links and cycles under a graph advisory lock. Challenge content, hint purchase and flag submission all enforce prerequisites on the server; any recorded correct flag satisfies completion. Admin detail views provide a preview.
+
+`ChallengeBankEntry.definition` stores a validated DUCA YAML v1 snapshot, including its full prerequisite closure. Event cloning and import create hidden draft events, preserve duration and release offsets, generate fresh IDs and flag hashes, and omit participant activity. Bank deployment creates hidden challenges. Local editor/writeup images travel as bounded base64 assets, restore with fresh filenames, and are cleaned up on transaction failure. External image URLs remain external. These documents are not CTFd/ctfcli compatible.
 
 ### Competition lifecycle
 
@@ -234,7 +244,7 @@ Two separate event buses, both using Redis `PUBLISH` / `SUBSCRIBE` (or in-memory
 | Support (`solves-events.js` pattern) | `duca:support:ticket:{id}`, `duca:support:inbox:{key}` | `message`, `ticket` |
 | Solves (`solves-events.js`) | `duca:solves` | `solve`, `refresh` |
 
-Publishers are called after writes (e.g. `notifySupportMessage`, `notifySolveCreated`). Subscribers are SSE stream handlers.
+Notification functions schedule bounded, best-effort publication with Next.js `after()`, following the saved mutation's response. Lookup/Redis errors and timeouts are contained and logged; they cannot turn a committed solve or support message into a failed response. There is no durable event outbox. SSE reconnect/refocus refetches persisted state after missed events. Subscribers are SSE stream handlers.
 
 ---
 
@@ -314,8 +324,10 @@ Uploads are stored on the filesystem, not in the database.
 | Writeup images | `/api/upload` | `{UPLOAD_DIR}/writeups/` | `/uploads/writeups/...` |
 | Support attachments | `/api/support/upload` | `{UPLOAD_DIR}/support/` | `/uploads/support/...` |
 
-- `UPLOAD_DIR` defaults to `public/uploads` in dev.
+- `UPLOAD_DIR` defaults to `data/uploads` in dev; keep it outside `public/`.
 - Production uses `/app/data/uploads` on a Docker volume.
+- `path.resolve` supports absolute storage roots without duplicating the working directory. `/uploads/[...path]` serves runtime files with explicit content types and path/symlink containment checks.
+- Support attachments require ticket access for direct downloads. Upload claims are signed per user/file and verified before a ticket or message accepts them.
 - Filenames are UUID-based. Images are validated by MIME type.
 
 ---

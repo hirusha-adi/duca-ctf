@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
 import { toEditorHtml } from "@/lib/content-format";
+import { CompetitionPortabilityTools, downloadPrivateYaml } from "@/components/admin/portability-controls";
 
 const emptyForm = {
   name: "",
@@ -33,6 +34,17 @@ export function AdminCompetitionsManager({ competitions: initial }) {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [cloneSource, setCloneSource] = useState(null);
+  const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState("");
+
+  async function exportCompetition(comp) {
+    setExporting(comp.id);
+    setExportError("");
+    try { await downloadPrivateYaml(`/api/admin/competitions/${comp.id}/export`, `${comp.slug || "competition"}.yaml`); }
+    catch (error) { setExportError(error.message); }
+    finally { setExporting(null); }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -98,6 +110,8 @@ export function AdminCompetitionsManager({ competitions: initial }) {
 
   return (
     <div className="space-y-8">
+      <CompetitionPortabilityTools key={cloneSource?.id || "import"} cloneSource={cloneSource} onCancel={() => setCloneSource(null)} />
+      {exportError && <p role="alert" className="text-sm text-destructive">{exportError}</p>}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
@@ -204,6 +218,12 @@ export function AdminCompetitionsManager({ competitions: initial }) {
               <TableCell className="space-x-2">
                 <Button size="sm" variant="outline" onClick={() => startEdit(comp)}>
                   Edit
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setCloneSource(comp); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                  Clone
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => exportCompetition(comp)} disabled={!!exporting}>
+                  {exporting === comp.id ? "Exporting…" : "Export YAML"}
                 </Button>
                 {comp.status !== "ENDED" && (
                   <Button size="sm" variant="destructive" onClick={() => endCompetition(comp.id)}>

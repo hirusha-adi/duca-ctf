@@ -107,6 +107,7 @@ Open **Admin** at [https://ctf.duca.au/admin](https://ctf.duca.au/admin) from th
 | User detail | `ctf.duca.au/admin/user/[email]` | Per-user solves, stats, full activity log |
 | Competitions | [ctf.duca.au/admin/competitions](https://ctf.duca.au/admin/competitions) | Create and schedule events |
 | Challenges | [ctf.duca.au/admin/challenges](https://ctf.duca.au/admin/challenges) | Create tasks, flags, points, categories |
+| Challenge bank | [ctf.duca.au/admin/challenge-bank](https://ctf.duca.au/admin/challenge-bank) | Save reusable challenge snapshots, import/export YAML, deploy into events |
 | Submissions | [ctf.duca.au/admin/submissions](https://ctf.duca.au/admin/submissions) | Flag attempt history, unsolve |
 | Support Chats | [ctf.duca.au/admin/chats](https://ctf.duca.au/admin/chats) | All player support tickets |
 | Writeups | [ctf.duca.au/admin/writeups](https://ctf.duca.au/admin/writeups) | Post-event solution content |
@@ -186,6 +187,28 @@ End-to-end playbook for DUCA staff.
 - Leave ended competitions visible for history, or hide them.
 - Old activity logs purge automatically after **14 days** (`ACTIVITY_LOG_RETENTION_DAYS`).
 - Database backups run daily at 03:00 in production.
+
+### Reusing events and challenges
+
+**Admin → Competitions** provides **Clone**, **Export YAML**, and **Import YAML**. Cloning copies challenge descriptions, active flags, hints, prerequisites, writeups, and referenced uploaded images. Choose a new name and optional start time; challenge release offsets and event duration are preserved. Clones and imports always start **hidden** with **DRAFT** status. Users, solves, submissions, hint purchases, support tickets, and activity logs are never copied. Review the schedule and content before unhiding the event.
+
+**Admin → Challenge bank** stores independent snapshots. Select an existing challenge to save it, then select saved entries and a destination competition to deploy copies. A snapshot includes its prerequisite challenges, so their unlock rules remain usable. Deployed challenges start hidden. Changing the source challenge does not update saved snapshots or deployed copies. Saving another snapshot creates another entry; remove obsolete entries from the bank when no longer needed.
+
+Each bank entry can also be exported or imported as YAML. Event YAML and bank YAML use the versioned **DUCA CTF v1** format; they are not CTFd/ctfcli files. Export files contain plaintext flag answers and official solutions, so keep them with organiser material. Referenced local editor/writeup images are bundled and restored with fresh filenames; external URLs remain external. Support attachments are not included. Limits: 100 challenges, 500 flags per document, 5 MB per image, 20 MB of images total, and 32 MB of YAML.
+
+### Hints and prerequisite unlocks
+
+The challenge editor lets you add ordered hints with a title, content, and whole-number point cost. A cost of **0** makes a hint free. A paid hint deducts its cost once from the player's score in that competition; players cannot use points from another event. Editing the price affects future purchases only. Removing a hint retires it, retaining past purchases and deductions.
+
+Choose prerequisite challenges from the same competition in the editor. Every selected prerequisite must be solved before the description, hints, and flag submission become available. Self-dependencies, cycles, and dependencies across competitions are rejected. Admins can preview locked content. A recorded correct flag completes a prerequisite even if it originally awarded zero points.
+
+### Editing challenges without changing past scores
+
+Point changes apply to future first solves. Existing `pointsAwarded` values remain unchanged. Removing a flag retires that answer rather than deleting its solves; retired answers stop accepting submissions. Hiding a challenge preserves earned scores. The complete challenge, flag, hint, and prerequisite edit is saved atomically: a validation error leaves the previous configuration intact.
+
+Challenges with solves or hint purchases cannot be moved between competitions. Clone or deploy a bank snapshot into the other event instead. **Unsolve** remains the explicit way to revoke a player's challenge points; it does not refund hint purchases. Deleting an event/challenge is a destructive action and is separate from editing or retirement.
+
+Realtime solve/support notifications are best effort after the save response. A notification transport failure does not undo a saved solve or message. Refresh the page or reconnect to load the persisted state if an update was missed.
 
 ---
 
@@ -356,7 +379,7 @@ Use with care in production — prefer admin UI for day-to-day tasks.
 | `ACTIVITY_LOG_RETENTION_DAYS` | `14` | How long telemetry is kept |
 | `SMTP_*` | — | Login codes (required) |
 | `SESSION_SECRET` | — | Session security |
-| `UPLOAD_DIR` | `public/uploads` | Writeup/page images |
+| `UPLOAD_DIR` | `data/uploads` | Uploaded images and support attachments; production uses `/app/data/uploads` |
 | `BACKUP_KEEP_COUNT` | `3` | Rotating DB backups |
 
 ---

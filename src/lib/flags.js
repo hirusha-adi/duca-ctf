@@ -1,5 +1,8 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
+import { prepareFlagChanges } from "./flag-changes.mjs";
+
+export { prepareFlagChanges } from "./flag-changes.mjs";
 
 export async function hashFlag(flag) {
   const normalized = normalizeFlag(flag);
@@ -15,59 +18,40 @@ export function normalizeFlag(flag) {
   return flag.trim();
 }
 
-export async function syncChallengeFlags(challengeId, flags) {
-  if (!Array.isArray(flags)) return;
+export async function syncChallengeFlags(challengeId, flags, client = prisma) {
+  if (client === prisma) {
+    return prisma.$transaction((tx) => syncChallengeFlags(challengeId, flags, tx));
+  }
 
-  const existing = await prisma.flag.findMany({
+  const existing = await client.flag.findMany({
     where: { challengeId },
-    select: { id: true },
+    select: { id: true, retired: true },
   });
-  const existingIds = new Set(existing.map((f) => f.id));
-  const submittedIds = new Set(flags.filter((f) => f.id).map((f) => f.id));
+  const changes = prepareFlagChanges(flags, existing);
+  // Hash everything before the first write, including flags late in the list.
+  const prepared = await Promise.all(
+    changes.flags.map(async (flag) => ({ ...flag, flagHash: await hashFlag(flag.value) }))
+  );
 
-  const toDelete = [...existingIds].filter((id) => !submittedIds.has(id));
-  if (toDelete.length > 0) {
-    await prisma.flag.deleteMany({ where: { id: { in: toDelete } } });
-  }
-
-  for (let i = 0; i < flags.length; i++) {
-    const flag = flags[i];
-    const label = flag.label || "";
-
-    if (flag.id && existingIds.has(flag.id)) {
-      const normalized = flag.value?.trim();
-      if (!normalized) {
-        throw new Error("FLAG_VALUE_REQUIRED");
-      }
-      await prisma.flag.update({
-        where: { id: flag.id },
-        data: {
-          label,
-          order: i,
-          value: normalized,
-          flagHash: await hashFlag(normalized),
-        },
+  for (const { id, ...data } of prepared) {
+    if (id) {
+      await client.flag.update({
+        where: { id },
+        data,
       });
-      continue;
-    }
-
-    if (!flag.id && flag.value?.trim()) {
-      const normalized = flag.value.trim();
-      await prisma.flag.create({
-        data: {
-          challengeId,
-          value: normalized,
-          flagHash: await hashFlag(normalized),
-          label,
-          order: i,
-        },
+    } else {
+      await client.flag.create({
+        data: { challengeId, ...data },
       });
     }
   }
 
-  const count = await prisma.flag.count({ where: { challengeId } });
-  if (count === 0) {
-    throw new Error("AT_LEAST_ONE_FLAG");
+  if (changes.retiredIds.length > 0) {
+    // Historical solves keep their original flag and awarded points.
+    await client.flag.updateMany({
+      where: { challengeId, id: { in: changes.retiredIds } },
+      data: { retired: true },
+    });
   }
 }
 
@@ -75,6 +59,13 @@ export function flagSyncErrorMessage(code) {
   const messages = {
     AT_LEAST_ONE_FLAG: "At least one flag is required",
     FLAG_VALUE_REQUIRED: "Every flag must have a value",
+    INVALID_FLAGS: "Flags must be a list of valid flag entries",
+    TOO_MANY_FLAGS: "A challenge can have at most 20 flags",
+    FLAG_VALUE_TOO_LONG: "Flag values must be at most 4,096 characters",
+    INVALID_FLAG_ID: "A flag no longer exists or does not belong to this challenge",
+    DUPLICATE_FLAG: "The same flag cannot be included more than once",
+    DUPLICATE_FLAG_VALUE: "Each flag must have a different value",
+    INVALID_FLAG_LABEL: "Flag labels must be text of at most 200 characters",
   };
   return messages[code] || "Failed to update flags";
 }
